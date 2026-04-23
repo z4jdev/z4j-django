@@ -23,6 +23,7 @@ from __future__ import annotations
 import atexit
 import logging
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from django.apps import AppConfig
@@ -36,6 +37,23 @@ if TYPE_CHECKING:
     from z4j_core.protocols import QueueEngineAdapter, SchedulerAdapter
 
 logger = logging.getLogger("z4j.agent.django.apps")
+
+# Eagerly import z4j_celery (if installed) at module-load time so its
+# ``celery.signals.worker_init`` handler is connected before any
+# Celery worker process tries to fire it. Without this, when the user
+# runs ``celery -A myproj worker``, the only z4j entry point loaded is
+# z4j-django (via INSTALLED_APPS) - and our ``ready()`` SKIPS startup
+# under a celery invocation so z4j-celery owns the worker. But that
+# split breaks if z4j-celery's signal handler was never connected:
+# nobody starts the runtime, no tasks reach the brain. Importing the
+# package here triggers its ``__init__.py`` which calls
+# ``register_worker_bootstrap()`` exactly once. The signal never fires
+# in non-worker contexts (web/runserver), so this is cheap.
+try:
+    import z4j_celery  # noqa: F401  - imported for the import side-effect
+except ImportError:
+    # z4j-celery is optional. The user simply isn't using Celery.
+    pass
 
 # Module-level state - there is at most one runtime per Django process.
 _runtime: AgentRuntime | None = None
@@ -71,6 +89,37 @@ class Z4JDjangoConfig(AppConfig):
         # in worker / web processes, not one-shot scripts.
         if _is_management_command():
             logger.debug("z4j: skipping startup during management command")
+            return
+
+        # Skip in the Django autoreload PARENT process. ``runserver``
+        # spawns two processes: the parent watches files and respawns
+        # the child on change; the child is the one actually serving.
+        # Both call ``ready()``, so without this guard both would open
+        # WebSockets to the brain - the brain treats the second as a
+        # "newer connection" and force-closes the first with code 4002.
+        # The result was noisy startup logs ("connection closed during
+        # send: received 4002") even though everything was fine.
+        # Django marks the child with RUN_MAIN=true.
+        if _is_autoreload_parent():
+            logger.debug("z4j: skipping startup in autoreload parent process")
+            return
+
+        # Skip when running under ``celery worker`` / ``celery beat``.
+        # In a Celery worker process the project's settings get loaded
+        # too (Django gets bootstrapped by the user's celery.py) so our
+        # ``ready()`` fires - but the right install path for a worker
+        # is ``z4j_celery.worker_bootstrap`` which attaches the Celery
+        # engine adapter to the runtime. If we start the runtime here
+        # (without the engine), we win the singleton race; the celery
+        # worker_init signal then sees an engine-less runtime and the
+        # worker captures no task events. Letting z4j-celery own the
+        # worker process (and z4j-django own the web/runserver process)
+        # keeps responsibility clean.
+        if _is_celery_invocation():
+            logger.debug(
+                "z4j: skipping startup under celery; "
+                "z4j-celery worker_bootstrap will install the agent",
+            )
             return
 
         global _runtime
@@ -124,6 +173,60 @@ class Z4JDjangoConfig(AppConfig):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _is_celery_invocation() -> bool:
+    """Return True if the process is being launched as a Celery sub-command.
+
+    Recognises the common shapes - ``celery -A app worker``,
+    ``python -m celery worker``, ``uv run celery worker``, etc. We
+    skip starting the agent from z4j-django when a Celery sub-command
+    is in flight so :mod:`z4j_celery.worker_bootstrap` can own the
+    install (with the Celery engine adapter attached). Without this
+    check, the engine-less runtime z4j-django would build wins the
+    process singleton and z4j-celery's signal handler hands back the
+    same engine-less runtime, so worker task events go un-captured.
+    """
+    import sys
+
+    argv = sys.argv or []
+    if not argv:
+        return False
+    prog = os.path.basename(argv[0]).lower()
+    if prog in {"celery", "celery.exe"}:
+        return True
+    # ``python -m celery ...`` and ``uv run celery ...`` and friends.
+    # Cheap and correct: scan the first few tokens for a literal
+    # ``celery`` / ``celery.exe``.
+    for tok in argv[1:6]:
+        if os.path.basename(tok).lower() in {"celery", "celery.exe"}:
+            return True
+    return False
+
+
+def _is_autoreload_parent() -> bool:
+    """Return True if we're the Django autoreload parent (watcher) process.
+
+    ``runserver`` (and other autoreloading commands) spawn a child
+    process to actually run the app, and the child has the env var
+    ``RUN_MAIN=true`` set by Django. The parent does not - the parent
+    just watches files and respawns the child. We want the agent to
+    run in the child, not the parent, so the brain sees one connection
+    per host instead of two-fighting-each-other.
+    """
+    import sys
+
+    # Only relevant when an autoreloading command was invoked.
+    autoreload_commands = {"runserver", "runserver_plus"}
+    if not sys.argv or len(sys.argv) < 2 or sys.argv[1] not in autoreload_commands:
+        return False
+    # The user can pass ``--noreload``; in that case there is only one
+    # process and RUN_MAIN is unset, but the agent should run.
+    if "--noreload" in sys.argv:
+        return False
+    # The child process has RUN_MAIN=true. If we don't see it, we are
+    # the parent watcher - skip.
+    return os.environ.get("RUN_MAIN", "").lower() != "true"
 
 
 def _is_management_command() -> bool:
@@ -204,9 +307,16 @@ def _discover_engines() -> list[QueueEngineAdapter]:
         engines.append(celery_engine)
 
     if not engines:
-        logger.warning(
-            "z4j: no queue engine adapters installed; the agent will run but "
-            "will not capture any task events. pip install z4j-celery to fix.",
+        # INFO not WARNING: in the standard split-process layout the
+        # web/runserver agent has nothing to capture (no worker runs
+        # here) and the celery worker process owns its own agent
+        # via ``z4j_celery.worker_bootstrap``. An empty engine list
+        # in the web process is normal and benign.
+        logger.info(
+            "z4j: no queue engine adapters available in this process. "
+            "If you run Celery / RQ / Dramatiq workers, install the "
+            "matching adapter (e.g. ``pip install z4j-celery``) and "
+            "they will register themselves in the worker process.",
         )
     return engines
 
@@ -227,9 +337,24 @@ def _try_import_celery_engine() -> Any:
 
     celery_app = _resolve_celery_app()
     if celery_app is None:
-        logger.warning(
-            "z4j-celery is installed but no Celery app could be located; "
-            "set settings.CELERY_APP to your celery.app instance.",
+        # INFO not WARNING: this is non-fatal in the most common
+        # case. The web process (runserver/gunicorn/uvicorn) usually
+        # only enqueues tasks via ``task.delay()`` - the Celery
+        # WORKER process is what actually executes them and emits
+        # task lifecycle events. The worker process gets its own
+        # agent runtime via ``z4j_celery.worker_bootstrap`` (signal
+        # handler on ``celery.signals.worker_init``) which builds
+        # the engine itself - so dashboard task tracking works fine
+        # even when this auto-detect comes up empty in the web
+        # process. The only side-effect of an empty result here is
+        # that ``task.delay()`` calls from web code are not
+        # captured as "task sent" events.
+        logger.info(
+            "z4j: no Celery app located in this process; "
+            "task lifecycle will still be captured by the celery "
+            "worker. To also capture task-sent events from web "
+            'code, add CELERY_APP = "<your_project>.celery:app" '
+            "to settings.py.",
         )
         return None
     return CeleryEngineAdapter(celery_app=celery_app)
@@ -238,8 +363,23 @@ def _try_import_celery_engine() -> Any:
 def _resolve_celery_app() -> Any:
     """Locate the Celery app via several common conventions.
 
+    Resolution order (first hit wins):
+
+    1. ``settings.CELERY_APP`` - explicit override (object or dotted
+       ``"module:attr"``/``"module.attr"`` string). Always honored.
+    2. ``celery.current_app`` - if any code in this process has already
+       constructed a Celery app (e.g. ``from .celery import app`` at
+       project import time, which is the cookiecutter-django pattern),
+       Celery's own current-app machinery returns it without us having
+       to guess the module path.
+    3. Module-path guesses, in order: ``<ROOT_URLCONF>.celery.app``,
+       ``<WSGI_APPLICATION>.celery.app``, ``<ASGI_APPLICATION>.celery.app``,
+       ``<BASE_DIR.name>.celery.app``. These cover Django, ASGI, and
+       cookiecutter conventions where the celery module sits next to
+       ``settings.py``.
+
     Returns ``None`` if no app can be found, but distinguishes
-    *missing* from *broken*: an ImportError on the conventional
+    *missing* from *broken*: an ImportError on a guessed
     ``<project>.celery`` module is silent, while *any other*
     exception inside that module is logged with the inner type and
     message - a broken celery.py is much more diagnostic-worthy than
@@ -258,34 +398,102 @@ def _resolve_celery_app() -> Any:
         if candidate is not None:
             return candidate
 
-    # Try cookiecutter-django convention: <project>.celery has ``app``
-    root_module_name = (
-        getattr(settings, "ROOT_URLCONF", "").split(".", 1)[0] or ""
-    )
-    if not root_module_name:
-        return None
+    # Module-path guesses. The cookiecutter convention puts ``celery.py``
+    # alongside ``settings.py`` inside the project package; we walk
+    # several Django settings that name that package.
+    candidates: list[str] = []
 
+    def _add(module_name: str | None) -> None:
+        if not module_name:
+            return
+        head = module_name.split(".", 1)[0]
+        if head and head not in candidates:
+            candidates.append(head)
+
+    _add(getattr(settings, "ROOT_URLCONF", None))
+    _add(getattr(settings, "WSGI_APPLICATION", None))
+    _add(getattr(settings, "ASGI_APPLICATION", None))
+    base_dir = getattr(settings, "BASE_DIR", None)
+    if base_dir is not None:
+        try:
+            _add(Path(str(base_dir)).name)
+        except Exception:  # noqa: BLE001
+            pass
+
+    import importlib
+
+    # Pass 1: project-package attribute lookup. The cookiecutter
+    # convention is ``<project>/__init__.py`` doing ``from .celery
+    # import app as celery_app`` so the app is reachable as
+    # ``<project>.celery_app`` (and sometimes as ``app``). This
+    # works EVEN if the user's ``celery.py`` lives somewhere
+    # non-standard, as long as ``__init__.py`` re-exports it.
+    for root_module_name in candidates:
+        try:
+            pkg = importlib.import_module(root_module_name)
+        except ImportError:
+            continue
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "z4j: %s package imported but raised %s: %s",
+                root_module_name,
+                type(exc).__name__,
+                exc,
+            )
+            continue
+        for attr_name in ("celery_app", "app"):
+            app = getattr(pkg, attr_name, None)
+            if app is not None and _looks_like_celery_app(app):
+                return app
+
+    # Pass 2: Celery's current-app machinery. If anything in this
+    # process imported and configured a Celery app, this returns it.
+    # We do this AFTER pass 1 because the package import in pass 1
+    # is what triggers the user's ``celery.py`` to load (and become
+    # current) in the first place.
     try:
-        import importlib
+        from celery import current_app  # type: ignore[import-not-found]
+        active = current_app._get_current_object()  # noqa: SLF001
+    except Exception:  # noqa: BLE001
+        active = None
+    if active is not None and _looks_like_celery_app(active):
+        return active
 
-        celery_module = importlib.import_module(f"{root_module_name}.celery")
-    except ImportError:
-        # No celery.py at all - user does not use Celery, totally fine.
-        return None
-    except Exception as exc:  # noqa: BLE001
-        # User has a celery.py but it raised on import. Log the inner
-        # type + message so the operator can see *what* broke without
-        # having to dig through Django's startup output. Don't crash
-        # - z4j stays optional.
-        logger.warning(
-            "z4j: %s.celery imported but raised %s: %s",
-            root_module_name,
-            type(exc).__name__,
-            exc,
-        )
-        return None
+    # Pass 3: explicit module-path guesses. Falls back to looking
+    # for ``<project>.celery.app`` for users whose __init__.py does
+    # NOT re-export the app.
+    for root_module_name in candidates:
+        try:
+            celery_module = importlib.import_module(f"{root_module_name}.celery")
+        except ImportError:
+            continue
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "z4j: %s.celery imported but raised %s: %s",
+                root_module_name,
+                type(exc).__name__,
+                exc,
+            )
+            return None
+        app = getattr(celery_module, "app", None)
+        if app is not None:
+            return app
 
-    return getattr(celery_module, "app", None)
+    return None
+
+
+def _looks_like_celery_app(obj: Any) -> bool:
+    """Return True if ``obj`` looks like a configured Celery app.
+
+    Excludes the un-configured default app (whose ``main`` is
+    ``"default"`` or empty) so a stray ``import celery`` somewhere
+    in the project does not poison auto-detect with a useless app.
+    """
+    main = getattr(obj, "main", None)
+    if main in (None, "", "default", "__main__"):
+        return False
+    # Duck-typing: a real Celery app has ``send_task`` and ``tasks``.
+    return hasattr(obj, "send_task") and hasattr(obj, "tasks")
 
 
 def _discover_schedulers() -> list[SchedulerAdapter]:

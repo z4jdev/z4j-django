@@ -120,6 +120,11 @@ def _resolve(settings_dict: dict[str, Any]) -> dict[str, Any]:
     if hmac_secret:
         resolved["hmac_secret"] = hmac_secret
 
+    # Agent name (optional human label). Allows multiple workers
+    # sharing one bearer token to be told apart in the dashboard.
+    # When unset the dashboard shows the name set at mint time.
+    _maybe_set(resolved, settings_dict, env, "agent_name", "Z4J_AGENT_NAME")
+
     # Optional fields with env override
     _maybe_set(resolved, settings_dict, env, "environment", "Z4J_ENVIRONMENT")
     _maybe_set(resolved, settings_dict, env, "transport", "Z4J_TRANSPORT")
