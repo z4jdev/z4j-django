@@ -6,7 +6,6 @@
 
 
 **License:** Apache 2.0
-**Status:** v1.0.0 - first public release.
 
 Django framework adapter for [z4j](https://z4j.com). Drops into any
 Django project via `INSTALLED_APPS` and bootstraps a z4j agent on
@@ -15,17 +14,23 @@ commands.
 
 ## Install
 
-```bash
-pip install z4j-django z4j-celery z4j-celerybeat
-```
-
-Pick the engine adapter(s) that match your stack:
+Pick your task engine and install with the matching extra. Each extra
+pulls the engine adapter AND its companion scheduler in one shot, so
+a fresh install never needs a second command.
 
 ```bash
-pip install z4j-django z4j-rq z4j-rqscheduler
-pip install z4j-django z4j-dramatiq z4j-apscheduler
-pip install z4j-django z4j-huey z4j-hueyperiodic
+pip install z4j-django[celery]      # Celery + celery-beat
+pip install z4j-django[rq]          # RQ + rq-scheduler
+pip install z4j-django[dramatiq]    # Dramatiq + APScheduler
+pip install z4j-django[huey]        # Huey + huey-periodic
+pip install z4j-django[arq]         # arq + arq-cron
+pip install z4j-django[taskiq]      # TaskIQ + taskiq-scheduler
+pip install z4j-django[all]         # every engine (CI / kitchen sink)
 ```
+
+`pip install z4j-django` (no extra) installs only the framework adapter.
+That's useful if you already manage engine packages elsewhere; otherwise
+always pick an engine extra.
 
 ## Configure
 

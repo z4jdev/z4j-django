@@ -1,6 +1,6 @@
 [project]
 name = "z4j-django"
-version = "1.0.4"
+version = "1.0.5"
 description = "z4j Django framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,6 +30,27 @@ dependencies = [
     # across our full 3.11 / 3.12 / 3.13 / 3.14 matrix. Django 5.2 is
     # itself LTS with security patches through April 2028.
     "django>=5.2.13",
+]
+
+[project.optional-dependencies]
+# Canonical engine bundles. `pip install z4j-django[celery]` pulls
+# the engine adapter AND its companion scheduler in one shot, so a
+# fresh install never needs a second command.
+celery   = ["z4j-celery>=1.0.2",   "z4j-celerybeat>=1.0.2"]
+rq       = ["z4j-rq>=1.0.1",       "z4j-rqscheduler>=1.0.1"]
+dramatiq = ["z4j-dramatiq>=1.0.1", "z4j-apscheduler>=1.0.1"]
+huey     = ["z4j-huey>=1.0.1",     "z4j-hueyperiodic>=1.0.1"]
+arq      = ["z4j-arq>=1.0.1",      "z4j-arqcron>=1.0.1"]
+taskiq   = ["z4j-taskiq>=1.0.1",   "z4j-taskiqscheduler>=1.0.1"]
+# Every engine in one shot - useful for CI matrices that exercise
+# all adapters against a Django host.
+all = [
+    "z4j-celery>=1.0.2",   "z4j-celerybeat>=1.0.2",
+    "z4j-rq>=1.0.1",       "z4j-rqscheduler>=1.0.1",
+    "z4j-dramatiq>=1.0.1", "z4j-apscheduler>=1.0.1",
+    "z4j-huey>=1.0.1",     "z4j-hueyperiodic>=1.0.1",
+    "z4j-arq>=1.0.1",      "z4j-arqcron>=1.0.1",
+    "z4j-taskiq>=1.0.1",   "z4j-taskiqscheduler>=1.0.1",
 ]
 
 [project.urls]
