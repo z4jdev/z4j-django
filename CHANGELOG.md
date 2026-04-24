@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-04-24
+
+### Added
+
+- **`python manage.py z4j_doctor`** - end-to-end agent connectivity check. Runs the same probes the agent runtime would (buffer dir writable, brain DNS, TCP, TLS, WebSocket upgrade), but synchronously and without starting the persistent agent. Output is human-readable text by default or JSON with `--json` for scripts. `--no-websocket` skips the network round-trip when the brain is intentionally offline. Exits 0 on all-green, 1 if any probe failed.
+  - Diagnoses the gunicorn-under-`www-data` startup failure (buffer dir not writable) without having to grep service logs.
+  - Diagnoses NAT / firewall / TLS-cert / wrong-token / wrong-project_id situations with a specific failure reason instead of a vague "agent shows unknown in dashboard".
+  - Reports auto-detected engines so operators can confirm the celery app is being found from the web process (and the dashboard's Engines column will populate).
+
+### Changed
+
+- Bumped minimum `z4j-core` to `>=1.0.4` (for `BufferStorageError`) and `z4j-bare` to `>=1.0.6` (for the smart buffer-path fallback and the reusable `z4j_bare.diagnostics` probes the doctor command wraps). Picks up the silent-startup-failure fix automatically: gunicorn under `www-data` now relocates the buffer to `$TMPDIR/z4j-{uid}/buffer-{pid}.sqlite` instead of crashing on `mkdir /var/www/.z4j`.
+
 ## [1.0.1] - 2026-04-21
 
 ### Changed
