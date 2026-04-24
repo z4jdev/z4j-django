@@ -113,11 +113,33 @@ class TestOptionalFields:
         self,
         z4j_settings: dict,
         monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Env-sourced buffer paths must live inside the allowed roots.
+
+        ``~/.z4j`` is always the primary allowed root; the clamp
+        resolves it at call time so this test doesn't need to touch
+        ``HOME``. Audit 2026-04-24 Low-2 - the resolver now rejects
+        buffer paths outside ``~/.z4j`` / ``$TMPDIR/z4j-{uid}``.
+        """
+        from z4j_bare.storage import primary_buffer_root
+
+        allowed = primary_buffer_root() / "django-test.sqlite"
+        monkeypatch.setenv("Z4J_BUFFER_PATH", str(allowed))
+        config = build_config_from_django()
+        assert config.buffer_path == allowed
+
+    def test_buffer_path_outside_allowed_roots_rejected(
+        self,
+        z4j_settings: dict,
+        monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
+        """The clamp refuses to open a SQLite buffer outside the
+        agent's allowed roots (audit 2026-04-24 Low-2).
+        """
         monkeypatch.setenv("Z4J_BUFFER_PATH", str(tmp_path / "x.sqlite"))
-        config = build_config_from_django()
-        assert config.buffer_path == tmp_path / "x.sqlite"
+        with pytest.raises(ConfigError, match="must be inside one of"):
+            build_config_from_django()
 
     def test_int_env_var_validation(
         self,
