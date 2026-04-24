@@ -1,6 +1,6 @@
 [project]
 name = "z4j-django"
-version = "1.0.5"
+version = "1.0.6"
 description = "z4j Django framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -22,8 +22,8 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "z4j-core>=1.0.2",
-    "z4j-bare>=1.0.3",
+    "z4j-core>=1.0.4",
+    "z4j-bare>=1.0.6",
     # Django 5.2 LTS is the newest Django line that still supports
     # Python 3.10 / 3.11. Django 6.0 dropped 3.11 support (requires
     # >=3.12). Pinning to the 5.2 LTS line keeps z4j-django installable
