@@ -125,6 +125,14 @@ def _resolve(settings_dict: dict[str, Any]) -> dict[str, Any]:
     # When unset the dashboard shows the name set at mint time.
     _maybe_set(resolved, settings_dict, env, "agent_name", "Z4J_AGENT_NAME")
 
+    # Long-poll agent UUID. Required when transport='longpoll' (Config
+    # now enforces this) because the transport has no handshake frame
+    # to discover the agent_id. Audit 2026-04-24 Medium-2 - the Django
+    # resolver previously only surfaced ``transport`` without the
+    # paired ``agent_id``, so operators switching to long-poll hit
+    # silent HMAC mismatches.
+    _maybe_set(resolved, settings_dict, env, "agent_id", "Z4J_AGENT_ID")
+
     # Optional fields with env override
     _maybe_set(resolved, settings_dict, env, "environment", "Z4J_ENVIRONMENT")
     _maybe_set(resolved, settings_dict, env, "transport", "Z4J_TRANSPORT")
@@ -168,11 +176,24 @@ def _resolve(settings_dict: dict[str, Any]) -> dict[str, Any]:
         resolved, settings_dict, env, "max_payload_bytes", "Z4J_MAX_PAYLOAD_BYTES",
     )
 
-    # Path
+    # Path - clamped to the agent's allowed buffer roots
+    # (``~/.z4j`` / ``$TMPDIR/z4j-{uid}``) so a typoed settings value
+    # or compromised env var cannot point the SQLite buffer at
+    # ``/etc/...`` or ``C:\Windows\...``. Audit 2026-04-24 Low-2:
+    # before this, Django / Flask / FastAPI bypassed the clamp that
+    # ``z4j_bare.install_agent`` applies.
+    from z4j_bare.storage import clamp_buffer_path
+
+    raw_buffer_path: Path | None = None
     if "buffer_path" in settings_dict:
-        resolved["buffer_path"] = Path(settings_dict["buffer_path"])
+        raw_buffer_path = Path(settings_dict["buffer_path"])
     elif "Z4J_BUFFER_PATH" in env:
-        resolved["buffer_path"] = Path(env["Z4J_BUFFER_PATH"])
+        raw_buffer_path = Path(env["Z4J_BUFFER_PATH"])
+    if raw_buffer_path is not None:
+        try:
+            resolved["buffer_path"] = clamp_buffer_path(raw_buffer_path)
+        except ValueError as exc:
+            raise ConfigError(str(exc)) from None
 
     # Redaction nested dict
     redaction = settings_dict.get("redaction") or {}

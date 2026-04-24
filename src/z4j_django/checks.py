@@ -28,6 +28,7 @@ _E_NOT_A_DICT = "z4j.E001"
 _E_MISSING_REQUIRED = "z4j.E002"
 _E_INVALID_BRAIN_URL = "z4j.E003"
 _E_INVALID_PROJECT_ID = "z4j.E004"
+_E_MISSING_HMAC_SECRET = "z4j.E005"
 _W_TOKEN_LOOKS_PLACEHOLDER = "z4j.W001"
 _W_INSECURE_BRAIN_URL = "z4j.W002"
 _W_MIDDLEWARE_MISSING = "z4j.W003"
@@ -71,6 +72,7 @@ def check_z4j_settings(
 
     issues: list[CheckMessage] = []
     issues.extend(_check_required(raw))
+    issues.extend(_check_hmac_secret(raw))
     issues.extend(_check_brain_url(raw))
     issues.extend(_check_project_id(raw))
     issues.extend(_check_token(raw))
@@ -105,6 +107,36 @@ def _check_required(z4j_dict: dict[str, Any]) -> list[CheckMessage]:
                 "Z4J_* environment variable."
             ),
             id=_E_MISSING_REQUIRED,
+        ),
+    ]
+
+
+def _check_hmac_secret(z4j_dict: dict[str, Any]) -> list[CheckMessage]:
+    """Verify ``hmac_secret`` is configured.
+
+    The agent runtime unconditionally refuses to start without an
+    ``hmac_secret`` (protocol v2 envelope HMAC is mandatory, with
+    no ``dev_mode`` bypass). The existing system checks passed when
+    only ``brain_url`` / ``token`` / ``project_id`` were set, so an
+    operator could deploy a "green" Django app that silently
+    continued past the ``AppConfig.ready()`` start-failure catch
+    without ever connecting to the brain. Surface the miss at
+    ``manage.py check`` time instead. Audit 2026-04-24 Low-1.
+    """
+    import os
+
+    if z4j_dict.get("hmac_secret") or os.environ.get("Z4J_HMAC_SECRET"):
+        return []
+    return [
+        Error(
+            "Z4J hmac_secret is missing; the agent refuses to start "
+            "without it (protocol v2 HMAC is mandatory).",
+            hint=(
+                "Set Z4J_HMAC_SECRET to the per-project secret the "
+                "brain printed when the project/agent token was "
+                "minted, or add 'hmac_secret' to settings.Z4J."
+            ),
+            id=_E_MISSING_HMAC_SECRET,
         ),
     ]
 
