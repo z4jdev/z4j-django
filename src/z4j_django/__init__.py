@@ -21,7 +21,7 @@ from z4j_django.config import build_config_from_django
 from z4j_django.context import Z4JContextMiddleware
 from z4j_django.framework import DjangoFrameworkAdapter
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 # Tell Django to use our custom AppConfig.
 default_app_config = "z4j_django.apps.Z4JDjangoConfig"
