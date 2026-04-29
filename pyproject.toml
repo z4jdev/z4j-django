@@ -1,6 +1,6 @@
 [project]
 name = "z4j-django"
-version = "1.1.0"
+version = "1.1.2"
 description = "z4j Django framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,7 +30,11 @@ dependencies = [
     # scheduler stack is unusable without z4j-bare>=1.1.0, so we
     # tighten the floor here to refuse a mixed install.
     "z4j-core>=1.1.0",
-    "z4j-bare>=1.1.0",
+    # 1.1.2 floor: z4j-bare 1.1.2 fixes the supervisor trapdoor
+    # that left agents stuck offline after AuthenticationError or
+    # ProtocolError, and adds the pidfile + SIGHUP infrastructure
+    # that powers ``manage.py z4j_restart``.
+    "z4j-bare>=1.1.2",
     # Django 5.2 LTS is the newest Django line that still supports
     # Python 3.10 / 3.11. Django 6.0 dropped 3.11 support (requires
     # >=3.12). Pinning to the 5.2 LTS line keeps z4j-django installable
@@ -59,6 +63,13 @@ all = [
     "z4j-arq>=1.0.1",      "z4j-arqcron>=1.0.1",
     "z4j-taskiq>=1.0.1",   "z4j-taskiqscheduler>=1.0.1",
 ]
+
+[project.scripts]
+# 1.1.2+ console script. ``z4j-django <subcommand>`` works without
+# loading Django settings (env-var only). For Django-flavored config
+# loading use ``manage.py z4j_doctor`` etc. - both surfaces are
+# supported and dispatch to the same shared diagnostics.
+z4j-django = "z4j_django.cli:main"
 
 [project.urls]
 Changelog = "https://github.com/z4jdev/z4j-django/blob/main/CHANGELOG.md"

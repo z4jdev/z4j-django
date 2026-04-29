@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-04-28
+
+### Added
+
+- **`z4j-django` console script.** Both `z4j-django <subcommand>`
+  (pip-installed entry point, no Django settings loaded) and
+  `python -m z4j_django <subcommand>` (module form) work and
+  dispatch to the same code path. Accompanies the existing
+  `python manage.py z4j_<subcommand>` Django-native form.
+- **`manage.py z4j_check`** - compact pass/fail health check.
+  Same probes as `z4j_doctor`, exit 0/1 contract.
+- **`manage.py z4j_status`** - one-line introspection of running
+  z4j agents on this host (PID + liveness via pidfile registry).
+- **`manage.py z4j_restart`** - sends SIGHUP to the running Django
+  agent so it drops its connection and reconnects immediately,
+  skipping the supervisor's exponential backoff.
+
+### Changed
+
+- **Floor bumped to `z4j-bare>=1.1.2`** (was `>=1.1.0`). 1.1.2
+  fixes the supervisor trapdoor that left agents stuck offline
+  after AuthenticationError or ProtocolError, and ships the
+  pidfile + SIGHUP infrastructure that powers `manage.py
+  z4j_restart`.
+
 ## [1.1.0] - 2026-04-28
 
 ### Changed
