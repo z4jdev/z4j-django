@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-29
+
+### Added
+
+- **`DjangoFrameworkAdapter.default_worker_role = "web"`**. The
+  worker-first protocol (1.2.0+) uses this hint when the
+  operator hasn't set `Z4J_WORKER_ROLE` explicitly. Django
+  processes embedded in gunicorn / uvicorn / daphne report as
+  role=`web` on the dashboard's workers page; operators running
+  Django in a Celery worker context override via env.
+
+### Changed
+
+- Dependency floors: `z4j-core>=1.2.0`, `z4j-bare>=1.2.0`. The
+  worker-first protocol requires these to land together. Old
+  combinations (django 1.2.0 + bare 1.1.x) would fall back to
+  legacy single-connection mode silently; the floor enforces
+  the full multi-worker fix.
+
+
 ## [1.1.2] - 2026-04-28
 
 ### Added

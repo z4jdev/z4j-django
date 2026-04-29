@@ -34,6 +34,13 @@ class DjangoFrameworkAdapter:
 
     name: str = "django"
 
+    #: Worker-first protocol (1.2.0+) role hint. Django agents
+    #: embedded in gunicorn / uvicorn / daphne processes default
+    #: to "web" because that's where 95% of Django installations
+    #: load this adapter from. Operators running Django as a Celery
+    #: worker (rare but legitimate) override via Z4J_WORKER_ROLE.
+    default_worker_role: str = "web"
+
     def __init__(self, config: Config) -> None:
         self._config = config
         self._startup_hooks: list[Callable[[], None]] = []
