@@ -1,6 +1,6 @@
 [project]
 name = "z4j-django"
-version = "1.2.0"
+version = "1.3.0"
 description = "z4j Django framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,12 +29,12 @@ dependencies = [
     # action" or "no scheduler adapter for None"). A 1.1.0 brain +
     # scheduler stack is unusable without z4j-bare>=1.1.0, so we
     # tighten the floor here to refuse a mixed install.
-    "z4j-core>=1.2.0",
+    "z4j-core>=1.3.0,<2",
     # 1.1.2 floor: z4j-bare 1.1.2 fixes the supervisor trapdoor
     # that left agents stuck offline after AuthenticationError or
     # ProtocolError, and adds the pidfile + SIGHUP infrastructure
     # that powers ``manage.py z4j_restart``.
-    "z4j-bare>=1.2.0",
+    "z4j-bare>=1.3.0,<2",
     # Django 5.2 LTS is the newest Django line that still supports
     # Python 3.10 / 3.11. Django 6.0 dropped 3.11 support (requires
     # >=3.12). Pinning to the 5.2 LTS line keeps z4j-django installable
@@ -47,21 +47,21 @@ dependencies = [
 # Canonical engine bundles. `pip install z4j-django[celery]` pulls
 # the engine adapter AND its companion scheduler in one shot, so a
 # fresh install never needs a second command.
-celery   = ["z4j-celery>=1.0.2",   "z4j-celerybeat>=1.0.2"]
-rq       = ["z4j-rq>=1.0.1",       "z4j-rqscheduler>=1.0.1"]
-dramatiq = ["z4j-dramatiq>=1.0.1", "z4j-apscheduler>=1.0.1"]
-huey     = ["z4j-huey>=1.0.1",     "z4j-hueyperiodic>=1.0.1"]
-arq      = ["z4j-arq>=1.0.1",      "z4j-arqcron>=1.0.1"]
-taskiq   = ["z4j-taskiq>=1.0.1",   "z4j-taskiqscheduler>=1.0.1"]
+celery   = ["z4j-celery>=1.3.0,<2",   "z4j-celerybeat>=1.3.0,<2"]
+rq       = ["z4j-rq>=1.3.0,<2",       "z4j-rqscheduler>=1.3.0,<2"]
+dramatiq = ["z4j-dramatiq>=1.3.0,<2", "z4j-apscheduler>=1.3.0,<2"]
+huey     = ["z4j-huey>=1.3.0,<2",     "z4j-hueyperiodic>=1.3.0,<2"]
+arq      = ["z4j-arq>=1.3.0,<2",      "z4j-arqcron>=1.3.0,<2"]
+taskiq   = ["z4j-taskiq>=1.3.0,<2",   "z4j-taskiqscheduler>=1.3.0,<2"]
 # Every engine in one shot - useful for CI matrices that exercise
 # all adapters against a Django host.
 all = [
-    "z4j-celery>=1.0.2",   "z4j-celerybeat>=1.0.2",
-    "z4j-rq>=1.0.1",       "z4j-rqscheduler>=1.0.1",
-    "z4j-dramatiq>=1.0.1", "z4j-apscheduler>=1.0.1",
-    "z4j-huey>=1.0.1",     "z4j-hueyperiodic>=1.0.1",
-    "z4j-arq>=1.0.1",      "z4j-arqcron>=1.0.1",
-    "z4j-taskiq>=1.0.1",   "z4j-taskiqscheduler>=1.0.1",
+    "z4j-celery>=1.3.0,<2",   "z4j-celerybeat>=1.3.0,<2",
+    "z4j-rq>=1.3.0,<2",       "z4j-rqscheduler>=1.3.0,<2",
+    "z4j-dramatiq>=1.3.0,<2", "z4j-apscheduler>=1.3.0,<2",
+    "z4j-huey>=1.3.0,<2",     "z4j-hueyperiodic>=1.3.0,<2",
+    "z4j-arq>=1.3.0,<2",      "z4j-arqcron>=1.3.0,<2",
+    "z4j-taskiq>=1.3.0,<2",   "z4j-taskiqscheduler>=1.3.0,<2",
 ]
 
 [project.scripts]
