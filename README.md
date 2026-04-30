@@ -15,17 +15,17 @@ the same channel.
 
 ## What it ships
 
-- **One-line install** — add `"z4j_django"` to `INSTALLED_APPS`; the
+- **One-line install**, add `"z4j_django"` to `INSTALLED_APPS`; the
   agent starts when Django boots, no decorator on every task
-- **Engine auto-discovery** — picks up whichever z4j engine adapter
+- **Engine auto-discovery**, picks up whichever z4j engine adapter
   is installed alongside (Celery, RQ, Dramatiq, Huey, arq, TaskIQ).
   Multiple engines in the same project are first-class.
-- **Schedule integration** — pair with `z4j-celerybeat` to surface
+- **Schedule integration**, pair with `z4j-celerybeat` to surface
   django-celery-beat schedules on the dashboard's Schedules page
-- **`@z4j_meta` decorator** — optional per-task annotations
+- **`@z4j_meta` decorator**, optional per-task annotations
   (`priority="critical"`, `description="..."`) that the dashboard
   honors for filtering and SLO display
-- **Service-user safe** — auto-relocates the local outbound buffer
+- **Service-user safe**, auto-relocates the local outbound buffer
   to `$TMPDIR/z4j-{uid}` when `$HOME` is unwritable (gunicorn
   under `www-data`, `nginx`, etc.)
 
@@ -63,7 +63,7 @@ Full docs at [z4j.dev/frameworks/django/](https://z4j.dev/frameworks/django/).
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE).
+Apache-2.0, see [LICENSE](LICENSE).
 
 ## Links
 
