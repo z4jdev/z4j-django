@@ -9,7 +9,7 @@ The Django framework adapter for [z4j](https://z4j.com).
 Adds the z4j agent into your Django project as a single
 `INSTALLED_APPS` entry. Auto-discovers the engine adapter you have
 installed (Celery, RQ, Dramatiq, Huey, arq, TaskIQ) and streams every
-task lifecycle event from your Django workers to the brain. Operator
+task lifecycle event from your Django workers to z4j. Operator
 control actions (retry, cancel, bulk retry, purge, restart) flow back
 the same channel.
 
@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 ]
 ```
 
-The agent reads its bearer token from `Z4J_AGENT_TOKEN`, the brain URL
+The agent reads its bearer token from `Z4J_AGENT_TOKEN`, z4j URL
 from `Z4J_BRAIN_URL`, and the project slug from `Z4J_PROJECT`. Mint
 the token from the dashboard's Agents page.
 
@@ -53,7 +53,7 @@ the token from the dashboard's Agents page.
 
 - No exception from the agent ever propagates back into Django request
   handlers, signals, or your worker code.
-- Events buffer locally when the brain is unreachable; your application
+- Events buffer locally when z4j is unreachable; your application
   never blocks on network I/O.
 - Agent reconnects on every transient failure with bounded backoff.
 
