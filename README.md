@@ -1,8 +1,8 @@
 # z4j-django
 
-[![PyPI version](https://img.shields.io/pypi/v/z4j-django.svg)](https://pypi.org/project/z4j-django/)
-[![Python](https://img.shields.io/pypi/pyversions/z4j-django.svg)](https://pypi.org/project/z4j-django/)
-[![License](https://img.shields.io/pypi/l/z4j-django.svg)](https://github.com/z4jdev/z4j-django/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/z4j-django.svg?v=1.4.0)](https://pypi.org/project/z4j-django/)
+[![Python](https://img.shields.io/pypi/pyversions/z4j-django.svg?v=1.4.0)](https://pypi.org/project/z4j-django/)
+[![License](https://img.shields.io/pypi/l/z4j-django.svg?v=1.4.0)](https://github.com/z4jdev/z4j-django/blob/main/LICENSE)
 
 The Django framework adapter for [z4j](https://z4j.com).
 
