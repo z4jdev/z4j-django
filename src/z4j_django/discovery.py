@@ -19,7 +19,7 @@ from pathlib import Path
 
 from z4j_core.models import DiscoveryHints
 
-logger = logging.getLogger("z4j.agent.django.discovery")
+logger = logging.getLogger("z4j.host.django.discovery")
 
 
 def collect_django_hints() -> DiscoveryHints:

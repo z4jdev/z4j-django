@@ -36,7 +36,7 @@ from z4j_django.framework import DjangoFrameworkAdapter
 if TYPE_CHECKING:
     from z4j_core.protocols import QueueEngineAdapter, SchedulerAdapter
 
-logger = logging.getLogger("z4j.agent.django.apps")
+logger = logging.getLogger("z4j.host.django.apps")
 
 # Eagerly import z4j_celery (if installed) at module-load time so its
 # ``celery.signals.worker_init`` handler is connected before any

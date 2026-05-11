@@ -83,22 +83,40 @@ class TestOptionalFields:
         config = build_config_from_django()
         assert config.environment == "staging"
 
-    def test_dev_mode_from_env(
+    def test_dev_mode_from_env_is_rejected(
         self,
         z4j_settings: dict,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """1.5 unified the security policy: Z4J_DEV_MODE env var is
+        warn-and-ignored by every adapter. Pre-1.5 z4j-bare rejected
+        it but Django/Flask/FastAPI silently honored it (audit C3
+        drift). Operators who genuinely want dev_mode in non-prod
+        set it in code (settings.Z4J["dev_mode"]) where the choice
+        is auditable in source control.
+        """
+        import warnings
+
         monkeypatch.setenv("Z4J_DEV_MODE", "true")
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            config = build_config_from_django()
+        # Env-set dev_mode is dropped, defaults to False
+        assert config.dev_mode is False
+        # The security warning fires
+        assert any("Z4J_DEV_MODE" in str(w.message) for w in caught)
+
+    def test_dev_mode_from_settings_is_honored(
+        self,
+        z4j_settings: dict,
+    ) -> None:
+        """Explicit dev_mode in settings.Z4J is honored - it's
+        operator code, not untrusted env. Same policy z4j-bare's
+        ``install_agent(dev_mode=True)`` already enforced.
+        """
+        z4j_settings["dev_mode"] = True
         config = build_config_from_django()
         assert config.dev_mode is True
-
-    def test_dev_mode_truthy_strings(
-        self,
-        z4j_settings: dict,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        monkeypatch.setenv("Z4J_DEV_MODE", "1")
-        assert build_config_from_django().dev_mode is True
 
     def test_engines_csv(
         self,
@@ -114,32 +132,38 @@ class TestOptionalFields:
         z4j_settings: dict,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """Env-sourced buffer paths must live inside the allowed roots.
+        """Explicit ``buffer_path`` in settings.Z4J is honored.
 
-        ``~/.z4j`` is always the primary allowed root; the clamp
-        resolves it at call time so this test doesn't need to touch
-        ``HOME``. Audit 2026-04-24 Low-2 - the resolver now rejects
-        buffer paths outside ``~/.z4j`` / ``$TMPDIR/z4j-{uid}``.
+        1.5+: Z4J_BUFFER_PATH was dropped (consolidated into Z4J_HOME
+        via z4j_core.paths). Operators who need a custom buffer
+        location set ``buffer_path`` in ``settings.Z4J`` directly;
+        explicit code-level settings are treated as authoritative.
         """
         from z4j_bare.storage import primary_buffer_root
 
         allowed = primary_buffer_root() / "django-test.sqlite"
-        monkeypatch.setenv("Z4J_BUFFER_PATH", str(allowed))
+        z4j_settings["buffer_path"] = str(allowed)
         config = build_config_from_django()
         assert config.buffer_path == allowed
 
-    def test_buffer_path_outside_allowed_roots_rejected(
+    def test_buffer_path_in_settings_passes_through(
         self,
         z4j_settings: dict,
-        monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
-        """The clamp refuses to open a SQLite buffer outside the
-        agent's allowed roots (audit 2026-04-24 Low-2).
+        """Explicit settings paths pass through unmodified.
+
+        1.5: the audit 2026-04-24 Low-2 clamp was specifically about
+        UNTRUSTED env vars. Explicit ``settings.Z4J["buffer_path"]``
+        is operator code, treated as authoritative. The Z4J_BUFFER_PATH
+        env var that the clamp protected against was dropped entirely
+        in 1.5; setting it triggers a startup error via
+        ``reject_deprecated_path_env``.
         """
-        monkeypatch.setenv("Z4J_BUFFER_PATH", str(tmp_path / "x.sqlite"))
-        with pytest.raises(ConfigError, match="must be inside one of"):
-            build_config_from_django()
+        explicit = tmp_path / "x.sqlite"
+        z4j_settings["buffer_path"] = str(explicit)
+        config = build_config_from_django()
+        assert config.buffer_path == explicit
 
     def test_int_env_var_validation(
         self,

@@ -51,7 +51,7 @@ from z4j_bare.declarative import (
     _z4j_native_schedules_to_specs,
 )
 
-logger = logging.getLogger("z4j.agent.django.reconcile")
+logger = logging.getLogger("z4j.host.django.reconcile")
 
 
 def reconcile_from_django_settings(

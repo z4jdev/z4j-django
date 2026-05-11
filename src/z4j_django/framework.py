@@ -86,7 +86,7 @@ class DjangoFrameworkAdapter:
         """
         import logging
 
-        logger = logging.getLogger("z4j.agent.django.framework")
+        logger = logging.getLogger("z4j.host.django.framework")
         for hook in self._startup_hooks:
             try:
                 hook()
@@ -101,7 +101,7 @@ class DjangoFrameworkAdapter:
         """
         import logging
 
-        logger = logging.getLogger("z4j.agent.django.framework")
+        logger = logging.getLogger("z4j.host.django.framework")
         for hook in self._shutdown_hooks:
             try:
                 hook()

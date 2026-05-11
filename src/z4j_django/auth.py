@@ -14,7 +14,7 @@ from uuid import UUID, uuid4, uuid5
 
 from z4j_core.models import User
 
-logger = logging.getLogger("z4j.agent.django.auth")
+logger = logging.getLogger("z4j.host.django.auth")
 
 
 def django_user_to_z4j_user(user: Any) -> User | None:

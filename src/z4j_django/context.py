@@ -31,7 +31,7 @@ from asgiref.sync import iscoroutinefunction, markcoroutinefunction
 
 from z4j_core.models import RequestContext, User
 
-logger = logging.getLogger("z4j.agent.django.context")
+logger = logging.getLogger("z4j.host.django.context")
 
 # We store a *weak reference* to the request rather than the request
 # itself. ContextVar semantics + ``asyncio.create_task`` make this a
