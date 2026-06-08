@@ -1,6 +1,6 @@
 [project]
 name = "z4j-django"
-version = "1.6.7"
+version = "1.6.8"
 description = "z4j Django framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -67,7 +67,10 @@ dependencies = [
 # the engine adapter AND its companion scheduler in one shot, so a
 # fresh install never needs a second command.
 celery   = ["z4j-celery>=1.4.0,<2",   "z4j-celerybeat>=1.4.0,<2"]
-rq       = ["z4j-rq>=1.4.0,<2",       "z4j-rqscheduler>=1.4.0,<2"]
+# R9 H-2: z4j-rq floor lifted to >=1.6.7 here so the [rq] extra
+# never resolves a pre-1.6.7 z4j-rq alongside this 1.6.8+ adapter
+# stack. See packages/z4j/pyproject.toml for the full rationale.
+rq       = ["z4j-rq>=1.6.7,<2",       "z4j-rqscheduler>=1.6.7,<2"]
 dramatiq = ["z4j-dramatiq>=1.4.0,<2", "z4j-apscheduler>=1.4.0,<2"]
 huey     = ["z4j-huey>=1.4.0,<2",     "z4j-hueyperiodic>=1.4.0,<2"]
 arq      = ["z4j-arq>=1.4.0,<2",      "z4j-arqcron>=1.4.0,<2"]
@@ -76,7 +79,7 @@ taskiq   = ["z4j-taskiq>=1.4.0,<2",   "z4j-taskiqscheduler>=1.4.0,<2"]
 # all adapters against a Django host.
 all = [
     "z4j-celery>=1.4.0,<2",   "z4j-celerybeat>=1.4.0,<2",
-    "z4j-rq>=1.4.0,<2",       "z4j-rqscheduler>=1.4.0,<2",
+    "z4j-rq>=1.6.7,<2",       "z4j-rqscheduler>=1.6.7,<2",  # R9 H-2 floor
     "z4j-dramatiq>=1.4.0,<2", "z4j-apscheduler>=1.4.0,<2",
     "z4j-huey>=1.4.0,<2",     "z4j-hueyperiodic>=1.4.0,<2",
     "z4j-arq>=1.4.0,<2",      "z4j-arqcron>=1.4.0,<2",
