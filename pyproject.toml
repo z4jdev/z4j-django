@@ -1,20 +1,23 @@
 [project]
 name = "z4j-django"
-version = "1.6.0"
+version = "1.6.7"
 description = "z4j Django framework adapter (Apache 2.0)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [{ name = "z4j contributors" }]
 keywords = ["z4j", "django", "celery", "task"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -35,12 +38,28 @@ dependencies = [
     # ProtocolError, and adds the pidfile + SIGHUP infrastructure
     # that powers ``manage.py z4j_restart``.
     "z4j-bare>=1.4.0,<2",
-    # Django 5.2 LTS is the newest Django line that still supports
-    # Python 3.10 / 3.11. Django 6.0 dropped 3.11 support (requires
-    # >=3.12). Pinning to the 5.2 LTS line keeps z4j-django installable
-    # across our full 3.11 / 3.12 / 3.13 / 3.14 matrix. Django 5.2 is
-    # itself LTS with security patches through April 2028.
-    "django>=5.2.13",
+    # Django compatibility policy (operator-chosen primary, wide range):
+    # the operator chose their Django version - we adapt to whatever
+    # they have, from 5.0 upward, with no upper cap. Per the broader
+    # z4j supply-chain policy: we hold CVE discipline on the brain
+    # runtime and our transitive libraries, but operators own the
+    # security posture of their own framework. Some operators run
+    # Django on air-gapped private networks where exposure is
+    # irrelevant; we should not block those installs.
+    #
+    # API floor: every Django symbol z4j-django imports (AppConfig,
+    # settings, system-checks framework, BaseCommand, apps registry,
+    # BigAutoField string) has been stable since Django 3.2. 5.0 is
+    # the practical lower bound an operator picks today and aligns
+    # with the relaxed Python 3.10 floor (Django 5.0 supports 3.10+).
+    # No upper cap: Django 6.0 / 6.1 / future 6.x install cleanly;
+    # pip's own python_requires resolution keeps 3.10 operators on
+    # the 5.x line automatically.
+    #
+    # Previously (z4j-django 1.6.6 and earlier): ``django>=5.2.13``.
+    # 1.6.7 originally tried ``django>=5.2.15,<6`` (CVE-pin posture);
+    # reverted to the wide-range policy above before ship.
+    "django>=5.0",
 ]
 
 [project.optional-dependencies]

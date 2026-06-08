@@ -1,8 +1,8 @@
 # z4j-django
 
-[![PyPI version](https://img.shields.io/pypi/v/z4j-django.svg?v=1.4.0)](https://pypi.org/project/z4j-django/)
-[![Python](https://img.shields.io/pypi/pyversions/z4j-django.svg?v=1.4.0)](https://pypi.org/project/z4j-django/)
-[![License](https://img.shields.io/pypi/l/z4j-django.svg?v=1.4.0)](https://github.com/z4jdev/z4j-django/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/z4j-django.svg?v=1.6.7)](https://pypi.org/project/z4j-django/)
+[![Python](https://img.shields.io/pypi/pyversions/z4j-django.svg?v=1.6.7)](https://pypi.org/project/z4j-django/)
+[![License](https://img.shields.io/pypi/l/z4j-django.svg?v=1.6.7)](https://github.com/z4jdev/z4j-django/blob/main/LICENSE)
 
 The Django framework adapter for [z4j](https://z4j.com).
 
@@ -12,6 +12,15 @@ installed (Celery, RQ, Dramatiq, Huey, arq, TaskIQ) and streams every
 task lifecycle event from your Django workers to z4j. Operator
 control actions (retry, cancel, bulk retry, purge, restart) flow back
 the same channel.
+
+## Compatibility
+
+- Django 5.0+ (no upper cap)
+- Python 3.10+
+
+Pair with an engine adapter (`z4j-celery`, `z4j-rq`, `z4j-dramatiq`, `z4j-huey`, `z4j-arq`, `z4j-taskiq`); each engine adapter carries its own upstream floor.
+
+Full per-adapter matrix at <https://z4j.dev/reference/compatibility/>.
 
 ## What it ships
 
