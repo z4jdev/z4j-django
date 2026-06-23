@@ -20,7 +20,6 @@ important than our observability tool.
 
 from __future__ import annotations
 
-import atexit
 import logging
 import os
 from pathlib import Path
@@ -157,7 +156,15 @@ class Z4JDjangoConfig(AppConfig):
             _runtime = None
             return
 
-        atexit.register(_shutdown)
+        # Register shutdown in the threading._register_atexit phase
+        # (runs BEFORE concurrent.futures tears down the default
+        # executor) so the runtime drains while that executor is still
+        # live - making the heartbeat shutdown-race structurally
+        # impossible rather than merely swallowed. Falls back to plain
+        # atexit if the private API is unavailable.
+        from z4j_bare.control import register_shutdown_atexit
+
+        register_shutdown_atexit(_shutdown)
         logger.info("z4j: agent runtime started for django")
 
     @classmethod

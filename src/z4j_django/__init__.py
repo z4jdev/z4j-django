@@ -17,11 +17,20 @@ Licensed under Apache License 2.0.
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
+
 from z4j_django.config import build_config_from_django
 from z4j_django.context import Z4JContextMiddleware
 from z4j_django.framework import DjangoFrameworkAdapter
 
-__version__ = "1.5.0"
+# Report the installed wheel version (drift-proof - tracks the
+# pyproject version automatically). Falls back to the z4j-core
+# protocol version for source checkouts with no installed metadata.
+try:
+    __version__ = _pkg_version("z4j-django")
+except PackageNotFoundError:
+    from z4j_core.version import __version__  # type: ignore[no-redef]
 
 # Tell Django to use our custom AppConfig.
 default_app_config = "z4j_django.apps.Z4JDjangoConfig"

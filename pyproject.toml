@@ -1,6 +1,6 @@
 [project]
 name = "z4j-django"
-version = "1.6.8"
+version = "1.6.9"
 description = "z4j Django framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.10"
