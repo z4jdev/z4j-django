@@ -20,13 +20,13 @@ important than our observability tool.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from django.apps import AppConfig
-
 from z4j_bare._process_singleton import clear_runtime, try_register
 from z4j_bare.runtime import AgentRuntime
 
@@ -48,11 +48,9 @@ logger = logging.getLogger("z4j.host.django.apps")
 # package here triggers its ``__init__.py`` which calls
 # ``register_worker_bootstrap()`` exactly once. The signal never fires
 # in non-worker contexts (web/runserver), so this is cheap.
-try:
-    import z4j_celery  # noqa: F401  - imported for the import side-effect
-except ImportError:
-    # z4j-celery is optional. The user simply isn't using Celery.
-    pass
+# z4j-celery is optional. The user simply isn't using Celery.
+with contextlib.suppress(ImportError):
+    import z4j_celery  # noqa: F401  imported for the import side-effect
 
 # Module-level state - there is at most one runtime per Django process.
 _runtime: AgentRuntime | None = None
@@ -71,7 +69,7 @@ class Z4JDjangoConfig(AppConfig):
     verbose_name = "z4j Django integration"
     default_auto_field = "django.db.models.BigAutoField"
 
-    def ready(self) -> None:
+    def ready(self) -> None:  # noqa: PLR0911  startup guards
         """Bootstrap the agent runtime.
 
         Wrapped in a top-level try/except so a startup error in z4j
@@ -121,13 +119,13 @@ class Z4JDjangoConfig(AppConfig):
             )
             return
 
-        global _runtime
+        global _runtime  # noqa: PLW0603  module-level singleton lazy-init
         if _runtime is not None:
             return  # already started in this process
 
         try:
             candidate = _build_runtime()
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception("z4j: failed to build agent runtime; continuing without it")
             _runtime = None
             return
@@ -149,7 +147,7 @@ class Z4JDjangoConfig(AppConfig):
             if candidate.config.autostart:
                 candidate.start()
                 candidate.framework.fire_startup()
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception("z4j: failed to start agent runtime; continuing without it")
             # Release the slot so a later caller can try.
             clear_runtime()
@@ -199,16 +197,13 @@ def _is_celery_invocation() -> bool:
     argv = sys.argv or []
     if not argv:
         return False
-    prog = os.path.basename(argv[0]).lower()
+    prog = Path(argv[0]).name.lower()
     if prog in {"celery", "celery.exe"}:
         return True
     # ``python -m celery ...`` and ``uv run celery ...`` and friends.
     # Cheap and correct: scan the first few tokens for a literal
     # ``celery`` / ``celery.exe``.
-    for tok in argv[1:6]:
-        if os.path.basename(tok).lower() in {"celery", "celery.exe"}:
-            return True
-    return False
+    return any(Path(tok).name.lower() in {"celery", "celery.exe"} for tok in argv[1:6])
 
 
 def _is_autoreload_parent() -> bool:
@@ -271,7 +266,12 @@ def _is_management_command() -> bool:
     if len(sys.argv) >= 2 and sys.argv[1] in skip_commands:
         return True
 
-    return False
+    # z4j's OWN management commands (z4j_doctor / z4j_check / z4j_status /
+    # z4j_restart / z4j_reconcile) are one-shot diagnostics / control that
+    # must NOT autostart a second agent -- doing so clobbers the shared
+    # pidfile and knocks the already-running agent's WebSocket over. The
+    # prefix covers any future z4j_* command automatically (B14).
+    return len(sys.argv) >= 2 and sys.argv[1].startswith("z4j")
 
 
 def _build_runtime() -> AgentRuntime:
@@ -367,7 +367,7 @@ def _try_import_celery_engine() -> Any:
     return CeleryEngineAdapter(celery_app=celery_app)
 
 
-def _resolve_celery_app() -> Any:
+def _resolve_celery_app() -> Any:  # noqa: PLR0912  resolution fallbacks
     """Locate the Celery app via several common conventions.
 
     Resolution order (first hit wins):
@@ -422,10 +422,8 @@ def _resolve_celery_app() -> Any:
     _add(getattr(settings, "ASGI_APPLICATION", None))
     base_dir = getattr(settings, "BASE_DIR", None)
     if base_dir is not None:
-        try:
+        with contextlib.suppress(Exception):
             _add(Path(str(base_dir)).name)
-        except Exception:  # noqa: BLE001
-            pass
 
     import importlib
 
@@ -440,7 +438,7 @@ def _resolve_celery_app() -> Any:
             pkg = importlib.import_module(root_module_name)
         except ImportError:
             continue
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning(
                 "z4j: %s package imported but raised %s: %s",
                 root_module_name,
@@ -460,8 +458,9 @@ def _resolve_celery_app() -> Any:
     # current) in the first place.
     try:
         from celery import current_app  # type: ignore[import-not-found]
-        active = current_app._get_current_object()  # noqa: SLF001
-    except Exception:  # noqa: BLE001
+
+        active = current_app._get_current_object()
+    except Exception:
         active = None
     if active is not None and _looks_like_celery_app(active):
         return active
@@ -474,7 +473,7 @@ def _resolve_celery_app() -> Any:
             celery_module = importlib.import_module(f"{root_module_name}.celery")
         except ImportError:
             continue
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning(
                 "z4j: %s.celery imported but raised %s: %s",
                 root_module_name,
@@ -546,7 +545,7 @@ def _resolve_import_path(path: str) -> Any:
             return None
         module = importlib.import_module(module_path)
         return getattr(module, attr_name, None)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning(
             "z4j: failed to resolve CELERY_APP=%r: %s: %s",
             path,
@@ -558,12 +557,12 @@ def _resolve_import_path(path: str) -> Any:
 
 def _shutdown() -> None:
     """``atexit`` handler that flushes the buffer and stops the runtime."""
-    global _runtime
+    global _runtime  # noqa: PLW0603  module-level singleton lazy-init
     if _runtime is None:
         return
     try:
         _runtime.stop(timeout=5.0)
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("z4j: error during shutdown")
     finally:
         _runtime = None

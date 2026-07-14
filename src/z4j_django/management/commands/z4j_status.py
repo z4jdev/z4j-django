@@ -25,7 +25,7 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args: Any, **options: Any) -> None:
-        from z4j_bare.control import _runtime_dir  # noqa: PLC0415
+        from z4j_bare.control import _runtime_dir
 
         rd = _runtime_dir()
         pidfiles = sorted(rd.glob("agent-*.pid"))

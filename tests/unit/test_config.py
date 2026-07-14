@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 from django.conf import settings
-
 from z4j_core.errors import ConfigError
 from z4j_core.models import Config
 from z4j_django.config import build_config_from_django

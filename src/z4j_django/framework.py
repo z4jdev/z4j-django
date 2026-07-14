@@ -68,7 +68,7 @@ class DjangoFrameworkAdapter:
     def on_shutdown(self, hook: Callable[[], None]) -> None:
         self._shutdown_hooks.append(hook)
 
-    def register_admin_view(self, view: Any) -> None:  # noqa: ARG002
+    def register_admin_view(self, view: Any) -> None:
         # Phase 1: no-op. The optional Django admin embed lands in
         # Phase 1.1 alongside the dashboard polish.
         return None
@@ -90,7 +90,7 @@ class DjangoFrameworkAdapter:
         for hook in self._startup_hooks:
             try:
                 hook()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 logger.exception("z4j django startup hook failed")
 
     def fire_shutdown(self) -> None:
@@ -105,7 +105,7 @@ class DjangoFrameworkAdapter:
         for hook in self._shutdown_hooks:
             try:
                 hook()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 logger.exception("z4j django shutdown hook failed")
 
 

@@ -1,9 +1,9 @@
 [project]
 name = "z4j-django"
-version = "1.6.9"
+version = "1.7.0"
 description = "z4j Django framework adapter (Apache 2.0)"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [{ name = "z4j contributors" }]
 keywords = ["z4j", "django", "celery", "task"]
@@ -17,7 +17,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -25,19 +24,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    # Floors bumped to >=1.1.0 for the v1.1.0 ecosystem family
-    # release. The z4j-bare 1.1.0 release fixes the schedule.fire
-    # dispatcher path that broke every brain-side scheduler tick
-    # (pre-1.1 the agent rejected schedule.fire with "unrecognized
-    # action" or "no scheduler adapter for None"). A 1.1.0 brain +
-    # scheduler stack is unusable without z4j-bare>=1.1.0, so we
-    # tighten the floor here to refuse a mixed install.
-    "z4j-core>=1.4.0,<2",
-    # 1.1.2 floor: z4j-bare 1.1.2 fixes the supervisor trapdoor
-    # that left agents stuck offline after AuthenticationError or
-    # ProtocolError, and adds the pidfile + SIGHUP infrastructure
-    # that powers ``manage.py z4j_restart``.
-    "z4j-bare>=1.4.0,<2",
+    # Intra-z4j floor policy: every z4j package in a release wave
+    # is tested together, so intra-z4j floors track the wave version
+    # and refuse mixed installs (R9-H2 precedent).
+    "z4j-core>=1.7.0,<2",
+    "z4j-bare>=1.7.0,<2",
     # Django compatibility policy (operator-chosen primary, wide range):
     # the operator chose their Django version - we adapt to whatever
     # they have, from 5.0 upward, with no upper cap. Per the broader
@@ -50,11 +41,10 @@ dependencies = [
     # API floor: every Django symbol z4j-django imports (AppConfig,
     # settings, system-checks framework, BaseCommand, apps registry,
     # BigAutoField string) has been stable since Django 3.2. 5.0 is
-    # the practical lower bound an operator picks today and aligns
-    # with the relaxed Python 3.10 floor (Django 5.0 supports 3.10+).
-    # No upper cap: Django 6.0 / 6.1 / future 6.x install cleanly;
-    # pip's own python_requires resolution keeps 3.10 operators on
-    # the 5.x line automatically.
+    # the practical lower bound an operator picks today and installs
+    # cleanly on this package's Python floor (requires-python >=3.11;
+    # Django 5.0 supports 3.10-3.13, so 3.11+ is well inside its range).
+    # No upper cap: Django 6.0 / 6.1 / future 6.x install cleanly.
     #
     # Previously (z4j-django 1.6.6 and earlier): ``django>=5.2.13``.
     # 1.6.7 originally tried ``django>=5.2.15,<6`` (CVE-pin posture);
@@ -66,24 +56,24 @@ dependencies = [
 # Canonical engine bundles. `pip install z4j-django[celery]` pulls
 # the engine adapter AND its companion scheduler in one shot, so a
 # fresh install never needs a second command.
-celery   = ["z4j-celery>=1.4.0,<2",   "z4j-celerybeat>=1.4.0,<2"]
+celery   = ["z4j-celery>=1.7.0,<2",   "z4j-celerybeat>=1.7.0,<2"]
 # R9 H-2: z4j-rq floor lifted to >=1.6.7 here so the [rq] extra
 # never resolves a pre-1.6.7 z4j-rq alongside this 1.6.8+ adapter
 # stack. See packages/z4j/pyproject.toml for the full rationale.
-rq       = ["z4j-rq>=1.6.7,<2",       "z4j-rqscheduler>=1.6.7,<2"]
-dramatiq = ["z4j-dramatiq>=1.4.0,<2", "z4j-apscheduler>=1.4.0,<2"]
-huey     = ["z4j-huey>=1.4.0,<2",     "z4j-hueyperiodic>=1.4.0,<2"]
-arq      = ["z4j-arq>=1.4.0,<2",      "z4j-arqcron>=1.4.0,<2"]
-taskiq   = ["z4j-taskiq>=1.4.0,<2",   "z4j-taskiqscheduler>=1.4.0,<2"]
+rq       = ["z4j-rq>=1.7.0,<2",       "z4j-rqscheduler>=1.7.0,<2"]
+dramatiq = ["z4j-dramatiq>=1.7.0,<2", "z4j-apscheduler>=1.7.0,<2"]
+huey     = ["z4j-huey>=1.7.0,<2",     "z4j-hueyperiodic>=1.7.0,<2"]
+arq      = ["z4j-arq>=1.7.0,<2",      "z4j-arqcron>=1.7.0,<2"]
+taskiq   = ["z4j-taskiq>=1.7.0,<2",   "z4j-taskiqscheduler>=1.7.0,<2"]
 # Every engine in one shot - useful for CI matrices that exercise
 # all adapters against a Django host.
 all = [
-    "z4j-celery>=1.4.0,<2",   "z4j-celerybeat>=1.4.0,<2",
-    "z4j-rq>=1.6.7,<2",       "z4j-rqscheduler>=1.6.7,<2",  # R9 H-2 floor
-    "z4j-dramatiq>=1.4.0,<2", "z4j-apscheduler>=1.4.0,<2",
-    "z4j-huey>=1.4.0,<2",     "z4j-hueyperiodic>=1.4.0,<2",
-    "z4j-arq>=1.4.0,<2",      "z4j-arqcron>=1.4.0,<2",
-    "z4j-taskiq>=1.4.0,<2",   "z4j-taskiqscheduler>=1.4.0,<2",
+    "z4j-celery>=1.7.0,<2",   "z4j-celerybeat>=1.7.0,<2",
+    "z4j-rq>=1.7.0,<2",       "z4j-rqscheduler>=1.7.0,<2",  # R9 H-2 floor
+    "z4j-dramatiq>=1.7.0,<2", "z4j-apscheduler>=1.7.0,<2",
+    "z4j-huey>=1.7.0,<2",     "z4j-hueyperiodic>=1.7.0,<2",
+    "z4j-arq>=1.7.0,<2",      "z4j-arqcron>=1.7.0,<2",
+    "z4j-taskiq>=1.7.0,<2",   "z4j-taskiqscheduler>=1.7.0,<2",
 ]
 
 [project.scripts]

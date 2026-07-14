@@ -41,7 +41,7 @@ def collect_django_hints() -> DiscoveryHints:
     except AppRegistryNotReady:
         logger.debug("django app registry not ready; returning empty hints")
         return DiscoveryHints(framework_name="django")
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("failed to enumerate django app configs")
         return DiscoveryHints(framework_name="django")
 
@@ -54,7 +54,7 @@ def collect_django_hints() -> DiscoveryHints:
             if app_path.is_dir():
                 paths.append(app_path)
             names.append(config.name)
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception(
                 "could not resolve filesystem path for django app %s",
                 config.name,

@@ -79,9 +79,7 @@ def reconcile_from_django_settings(
     z4j_schedules = getattr(settings, "Z4J_SCHEDULES", None) or {}
     reconcile_celery = getattr(settings, "Z4J_RECONCILE_CELERY_BEAT", False)
     celery_beat_schedules = (
-        getattr(settings, "CELERY_BEAT_SCHEDULE", None) or {}
-        if reconcile_celery
-        else None
+        getattr(settings, "CELERY_BEAT_SCHEDULE", None) or {} if reconcile_celery else None
     )
 
     if not z4j_schedules and not celery_beat_schedules:
@@ -102,7 +100,9 @@ def reconcile_from_django_settings(
     engine = getattr(settings, "Z4J_SCHEDULE_DEFAULT_ENGINE", "celery")
     scheduler = getattr(settings, "Z4J_SCHEDULE_OWNER", None)
     source = getattr(
-        settings, "Z4J_RECONCILE_SOURCE_TAG", "declarative:django",
+        settings,
+        "Z4J_RECONCILE_SOURCE_TAG",
+        "declarative:django",
     )
 
     reconciler = ScheduleReconciler(

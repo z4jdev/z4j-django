@@ -17,16 +17,13 @@ import json
 
 import httpx
 import pytest
-
+from z4j_core.celerybeat_compat import ScheduleSpec
 from z4j_django.declarative import (
-    ReconcileResult,
     ScheduleReconciler,
     _spec_to_brain_payload,
     _z4j_native_schedules_to_specs,
     reconcile_from_django_settings,
 )
-from z4j_core.celerybeat_compat import ScheduleSpec
-
 
 # ---------------------------------------------------------------------------
 # Native schedule translator
@@ -35,16 +32,18 @@ from z4j_core.celerybeat_compat import ScheduleSpec
 
 class TestNativeTranslator:
     def test_full_native_entry(self) -> None:
-        specs = _z4j_native_schedules_to_specs({
-            "send-daily": {
-                "task": "myapp.tasks.send_digest",
-                "kind": "cron",
-                "expression": "0 9 * * *",
-                "args": [1],
-                "kwargs": {"x": "y"},
-                "queue": "default",
-            },
-        })
+        specs = _z4j_native_schedules_to_specs(
+            {
+                "send-daily": {
+                    "task": "myapp.tasks.send_digest",
+                    "kind": "cron",
+                    "expression": "0 9 * * *",
+                    "args": [1],
+                    "kwargs": {"x": "y"},
+                    "queue": "default",
+                },
+            }
+        )
         assert len(specs) == 1
         s = specs[0]
         assert s.name == "send-daily"
@@ -56,13 +55,15 @@ class TestNativeTranslator:
         assert s.queue == "default"
 
     def test_minimal_entry(self) -> None:
-        specs = _z4j_native_schedules_to_specs({
-            "tick": {
-                "task": "myapp.tasks.tick",
-                "kind": "interval",
-                "expression": "30",
-            },
-        })
+        specs = _z4j_native_schedules_to_specs(
+            {
+                "tick": {
+                    "task": "myapp.tasks.tick",
+                    "kind": "interval",
+                    "expression": "30",
+                },
+            }
+        )
         assert len(specs) == 1
         assert specs[0].args == []
         assert specs[0].kwargs == {}
@@ -70,16 +71,20 @@ class TestNativeTranslator:
         assert specs[0].timezone == "UTC"
 
     def test_missing_task_skipped(self) -> None:
-        specs = _z4j_native_schedules_to_specs({
-            "broken": {"kind": "cron", "expression": "0 9 * * *"},
-        })
+        specs = _z4j_native_schedules_to_specs(
+            {
+                "broken": {"kind": "cron", "expression": "0 9 * * *"},
+            }
+        )
         assert specs == []
 
     def test_missing_kind_or_expression_skipped(self) -> None:
-        specs = _z4j_native_schedules_to_specs({
-            "no-kind": {"task": "x", "expression": "0 9 * * *"},
-            "no-expr": {"task": "y", "kind": "cron"},
-        })
+        specs = _z4j_native_schedules_to_specs(
+            {
+                "no-kind": {"task": "x", "expression": "0 9 * * *"},
+                "no-expr": {"task": "y", "kind": "cron"},
+            }
+        )
         assert specs == []
 
 
@@ -120,7 +125,10 @@ class TestRequestBody:
             expression="0 9 * * *",
         )
         payload = _spec_to_brain_payload(
-            spec, engine="celery", scheduler=None, source="t",
+            spec,
+            engine="celery",
+            scheduler=None,
+            source="t",
         )
         assert "scheduler" not in payload
 
@@ -174,8 +182,6 @@ class TestHttpFlow:
             )
 
         # Patch httpx.Client with our mock transport
-        original_client = ScheduleReconciler._http_client
-
         def patched(self) -> httpx.Client:
             return httpx.Client(
                 base_url=self.brain_url,
@@ -189,7 +195,9 @@ class TestHttpFlow:
         monkeypatch.setattr(ScheduleReconciler, "_http_client", patched)
 
         reconciler = ScheduleReconciler(
-            brain_url="http://b", api_key="my-key", project_slug="myproj",
+            brain_url="http://b",
+            api_key="my-key",
+            project_slug="myproj",
         )
         result = reconciler.reconcile(
             z4j_schedules={
@@ -226,7 +234,9 @@ class TestHttpFlow:
         monkeypatch.setattr(ScheduleReconciler, "_http_client", patched)
 
         reconciler = ScheduleReconciler(
-            brain_url="http://b", api_key="k", project_slug="proj",
+            brain_url="http://b",
+            api_key="k",
+            project_slug="proj",
         )
         result = reconciler.reconcile(
             z4j_schedules={
@@ -253,7 +263,9 @@ class TestHttpFlow:
 class TestMixedSources:
     def test_native_wins_on_name_conflict(self) -> None:
         reconciler = ScheduleReconciler(
-            brain_url="http://b", api_key="k", project_slug="proj",
+            brain_url="http://b",
+            api_key="k",
+            project_slug="proj",
         )
         specs = reconciler.collect_specs(
             z4j_schedules={
@@ -275,7 +287,9 @@ class TestMixedSources:
 
     def test_both_sources_distinct_names(self) -> None:
         reconciler = ScheduleReconciler(
-            brain_url="http://b", api_key="k", project_slug="proj",
+            brain_url="http://b",
+            api_key="k",
+            project_slug="proj",
         )
         specs = reconciler.collect_specs(
             z4j_schedules={
@@ -317,7 +331,8 @@ class TestSettingsShim:
         assert result is None
 
     def test_missing_brain_url_returns_none(
-        self, caplog: pytest.LogCaptureFixture,
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         settings = _FakeSettings(
             Z4J_SCHEDULES={
@@ -331,7 +346,8 @@ class TestSettingsShim:
         assert any("missing" in r.message for r in caplog.records)
 
     def test_celery_beat_only_via_flag(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         captured: dict = {}
 

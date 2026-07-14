@@ -7,8 +7,6 @@ imports work in test isolation.
 
 from __future__ import annotations
 
-import os
-
 import django
 import pytest
 from django.conf import settings

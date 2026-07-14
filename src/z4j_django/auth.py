@@ -55,7 +55,7 @@ def django_user_to_z4j_user(user: Any) -> User | None:
             created_at=getattr(user, "date_joined", None) or datetime.now(UTC),
             updated_at=datetime.now(UTC),
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.debug("z4j: failed to convert django user", exc_info=True)
         return None
 
@@ -69,7 +69,7 @@ def _resolve_display_name(user: Any) -> str | None:
                 name = method()
                 if name:
                     return str(name)[:200]
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: S112  best-effort display-name method
                 continue
     name = getattr(user, "username", None) or getattr(user, "name", None)
     if name:
@@ -111,7 +111,7 @@ def _coerce_uuid(pk: Any) -> UUID:
         return uuid4()
     try:
         key = str(pk)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return uuid4()
     return uuid5(_DJANGO_USER_NAMESPACE, f"django:{key}")
 
@@ -121,7 +121,7 @@ def _safe_str(value: Any) -> str | None:
         return None
     try:
         return str(value)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
 
 

@@ -30,11 +30,10 @@ class Command(BaseCommand):
 
         try:
             config = build_config_from_django()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.stderr.write(
                 self.style.ERROR(
-                    f"z4j-django check: config: FAIL "
-                    f"({type(exc).__name__}: {exc})",
+                    f"z4j-django check: config: FAIL ({type(exc).__name__}: {exc})",
                 ),
             )
             sys.exit(2)

@@ -54,7 +54,8 @@ class Command(BaseCommand):
         from z4j_django.declarative import reconcile_from_django_settings
 
         result = reconcile_from_django_settings(
-            django_settings, dry_run=options["dry_run"],
+            django_settings,
+            dry_run=options["dry_run"],
         )
 
         if result is None:
@@ -93,9 +94,11 @@ class Command(BaseCommand):
             self.stdout.write(f"  unchanged: {result.unchanged}")
             self.stdout.write(f"  deleted:   {result.deleted}")
             if result.failed:
-                self.stdout.write(self.style.ERROR(
-                    f"  failed:    {result.failed}",
-                ))
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"  failed:    {result.failed}",
+                    )
+                )
                 for idx, err in result.errors.items():
                     self.stdout.write(self.style.ERROR(f"    [{idx}] {err}"))
             else:

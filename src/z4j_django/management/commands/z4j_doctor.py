@@ -50,7 +50,7 @@ class Command(BaseCommand):
 
         try:
             config = build_config_from_django()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self._emit_config_failure(exc, options)
             sys.exit(1)
 
@@ -99,8 +99,7 @@ class Command(BaseCommand):
             return
         self.stderr.write(
             self.style.ERROR(
-                f"FAIL: could not build config from Django settings: "
-                f"{type(exc).__name__}: {exc}",
+                f"FAIL: could not build config from Django settings: {type(exc).__name__}: {exc}",
             ),
         )
 
@@ -167,10 +166,10 @@ class Command(BaseCommand):
         this process. Does NOT actually instantiate the engines or
         connect them to anything - this is a pure probe.
         """
-        from z4j_django.apps import _discover_engines  # noqa: SLF001
+        from z4j_django.apps import _discover_engines
 
         try:
             engines = _discover_engines()
-        except Exception:  # noqa: BLE001
+        except Exception:
             return []
         return [e.name for e in engines]

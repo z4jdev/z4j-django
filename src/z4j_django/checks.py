@@ -21,15 +21,20 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from django.conf import settings
-from django.core.checks import CheckMessage, Error, Warning, register
+from django.core.checks import (
+    CheckMessage,
+    Error,
+    Warning,  # noqa: A004  Django check-message class, not the builtin
+    register,
+)
 
 # Check IDs follow the convention: ``z4j.<num>``.
 _E_NOT_A_DICT = "z4j.E001"
 _E_MISSING_REQUIRED = "z4j.E002"
 _E_INVALID_BRAIN_URL = "z4j.E003"
 _E_INVALID_PROJECT_ID = "z4j.E004"
-_E_MISSING_HMAC_SECRET = "z4j.E005"
-_W_TOKEN_LOOKS_PLACEHOLDER = "z4j.W001"
+_E_MISSING_HMAC_SECRET = "z4j.E005"  # noqa: S105  check-id constant, not a secret
+_W_TOKEN_LOOKS_PLACEHOLDER = "z4j.W001"  # noqa: S105  check-id constant, not a secret
 _W_INSECURE_BRAIN_URL = "z4j.W002"
 _W_MIDDLEWARE_MISSING = "z4j.W003"
 
@@ -39,8 +44,8 @@ _PLACEHOLDER_PATTERNS = ("changeme", "replace", "your-token", "xxx")
 
 @register()
 def check_z4j_settings(
-    app_configs: Any | None = None,  # noqa: ARG001
-    **kwargs: Any,  # noqa: ARG001
+    app_configs: Any | None = None,
+    **kwargs: Any,
 ) -> list[CheckMessage]:
     """Validate ``settings.Z4J`` and related env vars at startup.
 
@@ -201,8 +206,7 @@ def _check_brain_url(z4j_dict: dict[str, Any]) -> list[CheckMessage]:
     if parts.query or parts.fragment:
         return [
             Error(
-                f"Z4J brain_url {safe_display!r} must not include a query string "
-                "or fragment.",
+                f"Z4J brain_url {safe_display!r} must not include a query string or fragment.",
                 hint="Use just the scheme + host (+ optional port).",
                 id=_E_INVALID_BRAIN_URL,
             ),
@@ -215,8 +219,7 @@ def _check_brain_url(z4j_dict: dict[str, Any]) -> list[CheckMessage]:
                 f"Z4J brain_url {safe_display!r} uses plain http://; production "
                 "deployments must terminate TLS via a reverse proxy.",
                 hint=(
-                    "See docs/DEPLOYMENT.md §6.1 for the recommended Caddy / nginx "
-                    "configuration."
+                    "See docs/DEPLOYMENT.md §6.1 for the recommended Caddy / nginx configuration."
                 ),
                 id=_W_INSECURE_BRAIN_URL,
             ),

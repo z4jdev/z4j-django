@@ -14,14 +14,14 @@ from __future__ import annotations
 from typing import Any
 
 
-def register_admin_panel(view: Any) -> None:  # noqa: ARG001
+def register_admin_panel(view: Any) -> None:
     """Register a z4j panel inside Django admin.
 
     No-op in Phase 1. The Phase 1.1 implementation will mount a
     Django view at ``/admin/z4j/`` that proxies to the brain's
     REST API using the current admin user's session.
     """
-    return None
+    return
 
 
 __all__ = ["register_admin_panel"]

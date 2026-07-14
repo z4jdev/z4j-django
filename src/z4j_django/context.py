@@ -28,7 +28,6 @@ from typing import Any
 from uuid import UUID
 
 from asgiref.sync import iscoroutinefunction, markcoroutinefunction
-
 from z4j_core.models import RequestContext, User
 
 logger = logging.getLogger("z4j.host.django.context")
@@ -43,8 +42,9 @@ logger = logging.getLogger("z4j.host.django.context")
 # it (and its user, session, headers, body) alive long after Django
 # considers the request "done". A weakref makes the leak self-healing:
 # once Django releases the request the spawned task sees ``None``.
-_current_request: ContextVar["weakref.ReferenceType[Any] | None"] = ContextVar(
-    "_z4j_django_current_request", default=None,
+_current_request: ContextVar[weakref.ReferenceType[Any] | None] = ContextVar(
+    "_z4j_django_current_request",
+    default=None,
 )
 
 
@@ -100,7 +100,7 @@ class Z4JContextMiddleware:
             _current_request.reset(token)
 
 
-def _safe_ref(request: Any) -> "weakref.ReferenceType[Any] | None":
+def _safe_ref(request: Any) -> weakref.ReferenceType[Any] | None:
     """Return a weakref to ``request``, or None if it can't be weak-ref'd.
 
     Django's ``HttpRequest`` supports weakrefs; certain test stubs
@@ -160,7 +160,7 @@ def current_request_context() -> RequestContext | None:
         tenant_id = _resolve_tenant_id(request)
         request_id = _resolve_request_id(request)
         trace_id = _resolve_trace_id(request)
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.debug("z4j: failed to derive request context", exc_info=True)
         return None
 

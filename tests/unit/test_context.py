@@ -5,8 +5,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 from uuid import UUID
 
-import pytest
-
 from z4j_django.context import (
     Z4JContextMiddleware,
     _current_request,
@@ -38,7 +36,7 @@ class _WeakRefableRequest:
     weakrefs, so middleware tests use this class instead.
     """
 
-    __slots__ = ("method", "path", "__weakref__")
+    __slots__ = ("__weakref__", "method", "path")
 
     def __init__(self, *, method: str = "GET", path: str = "/") -> None:
         self.method = method
