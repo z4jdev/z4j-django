@@ -101,21 +101,34 @@ class Z4JDjangoConfig(AppConfig):
             logger.debug("z4j: skipping startup in autoreload parent process")
             return
 
-        # Skip when running under ``celery worker`` / ``celery beat``.
+        # Skip when running under Celery sub-commands -- EXCEPT beat.
         # In a Celery worker process the project's settings get loaded
         # too (Django gets bootstrapped by the user's celery.py) so our
         # ``ready()`` fires - but the right install path for a worker
         # is ``z4j_celery.worker_bootstrap`` which attaches the Celery
         # engine adapter to the runtime. If we start the runtime here
         # (without the engine), we win the singleton race; the celery
-        # worker_init signal then sees an engine-less runtime and the
+        # worker_ready signal then sees an engine-less runtime and the
         # worker captures no task events. Letting z4j-celery own the
         # worker process (and z4j-django own the web/runserver process)
-        # keeps responsibility clean.
-        if _is_celery_invocation():
+        # keeps responsibility clean. Short-lived sub-commands
+        # (``inspect``, ``control``, ``purge``, ``shell``, ...) stay
+        # skipped so they don't mint ghost agent sessions.
+        #
+        # ``celery beat`` is the deliberate EXCEPTION: worker_bootstrap
+        # only installs under ``celery worker``, so skipping beat here
+        # meant NOBODY installed an agent in the beat process -- its
+        # dedicated agent token sat unused in state "unknown" and the
+        # celery-beat scheduler adapter never shipped schedule
+        # snapshots to the brain. Beat is a long-running process whose
+        # settings-declared adapters (engines + schedulers) install
+        # fine through the normal Django path below.
+        _celery_sub = _celery_subcommand()
+        if _celery_sub is not None and _celery_sub != "beat":
             logger.debug(
-                "z4j: skipping startup under celery; "
-                "z4j-celery worker_bootstrap will install the agent",
+                "z4j: skipping startup under celery %s; "
+                "z4j-celery worker_bootstrap owns the worker install",
+                _celery_sub,
             )
             return
 
@@ -180,30 +193,84 @@ class Z4JDjangoConfig(AppConfig):
 # ---------------------------------------------------------------------------
 
 
-def _is_celery_invocation() -> bool:
-    """Return True if the process is being launched as a Celery sub-command.
+def _celery_subcommand() -> str | None:
+    """Return the Celery sub-command in flight, or ``None``.
 
     Recognises the common shapes - ``celery -A app worker``,
-    ``python -m celery worker``, ``uv run celery worker``, etc. We
-    skip starting the agent from z4j-django when a Celery sub-command
-    is in flight so :mod:`z4j_celery.worker_bootstrap` can own the
-    install (with the Celery engine adapter attached). Without this
-    check, the engine-less runtime z4j-django would build wins the
-    process singleton and z4j-celery's signal handler hands back the
-    same engine-less runtime, so worker task events go un-captured.
+    ``python -m celery beat``, ``uv run celery worker``, etc. - and
+    returns the sub-command token (``"worker"``, ``"beat"``,
+    ``"inspect"``, ...). Returns ``None`` when the process is not a
+    Celery CLI invocation at all.
+
+    The caller uses this to skip starting the agent from z4j-django
+    for Celery sub-commands that either have their own install path
+    (``worker`` -> :mod:`z4j_celery.worker_bootstrap`, which attaches
+    the Celery engine adapter) or are too short-lived to own an agent
+    session (``inspect`` / ``control`` / ``purge`` / ...). Without
+    the worker skip, the engine-less runtime z4j-django would build
+    wins the process singleton and z4j-celery's signal handler hands
+    back the same engine-less runtime, so worker task events go
+    un-captured. ``beat`` is deliberately NOT skipped by the caller.
     """
     import sys
 
     argv = sys.argv or []
     if not argv:
-        return False
+        return None
     prog = Path(argv[0]).name.lower()
     if prog in {"celery", "celery.exe"}:
-        return True
+        return _first_subcommand(argv[1:])
     # ``python -m celery ...`` and ``uv run celery ...`` and friends.
     # Cheap and correct: scan the first few tokens for a literal
     # ``celery`` / ``celery.exe``.
-    return any(Path(tok).name.lower() in {"celery", "celery.exe"} for tok in argv[1:6])
+    for i, tok in enumerate(argv[1:6], start=1):
+        if Path(tok).name.lower() in {"celery", "celery.exe"}:
+            return _first_subcommand(argv[i + 1 :])
+    return None
+
+
+#: Celery GLOBAL options that take a separate value token (the
+#: space-separated form ``-b amqp://host``). Their value must be consumed
+#: so it is not mistaken for the sub-command. The ``--opt=value`` form is
+#: self-contained (one dash-prefixed token) and handled by the generic
+#: flag skip below.
+_CELERY_VALUE_OPTS: frozenset[str] = frozenset(
+    {
+        "-A",
+        "--app",
+        "-b",
+        "--broker",
+        "--result-backend",
+        "--loader",
+        "--config",
+        "--workdir",
+    },
+)
+
+
+def _first_subcommand(remaining: list[str]) -> str:
+    """Return the first non-flag token (the Celery sub-command).
+
+    Skips every value-taking GLOBAL option's value pair (``-A app``,
+    ``-b amqp://host``, ``--result-backend redis://...``, ...) and any
+    dash-prefixed flag so ``celery -A myapp.celery -b amqp://mq beat -l
+    info`` resolves to ``"beat"``. Pre-fix only ``-A``/``--app`` values
+    were consumed, so ``-b amqp://host`` leaked ``amqp://host`` as the
+    "sub-command" and the beat agent was skipped (B15). Falls back to
+    ``"unknown"`` when no sub-command token is present -- the caller
+    treats any non-``beat`` value as "skip", the safe default for
+    unrecognised invocations.
+    """
+    it = iter(remaining)
+    for arg in it:
+        if arg in _CELERY_VALUE_OPTS:
+            next(it, None)  # consume the option's value token
+            continue
+        if arg.startswith("-"):
+            # Valueless flag, or the self-contained ``--opt=value`` form.
+            continue
+        return arg
+    return "unknown"
 
 
 def _is_autoreload_parent() -> bool:
