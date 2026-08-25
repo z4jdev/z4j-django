@@ -10,8 +10,8 @@ is called once per process. We use that hook to:
    v1 default; absence is fine - it just means no engines run)
 4. Discover any installed scheduler adapters (``z4j-celerybeat``)
 5. Construct an :class:`AgentRuntime` and start it
-6. Register an ``atexit`` shutdown hook so the runtime drains its
-   buffer when the process exits cleanly
+6. Register an ``atexit`` shutdown hook. Unsent events remain in the
+   on-disk buffer for the next process start.
 
 This entire flow is wrapped in a top-level try/except - if z4j
 fails to start, Django keeps running. The host application is more
@@ -143,11 +143,10 @@ class Z4JDjangoConfig(AppConfig):
             _runtime = None
             return
 
-        # Cooperate with ``z4j_celery.worker_bootstrap``: both paths
-        # fire in a Django+Celery worker process, and the brain only
-        # accepts ONE WebSocket per agent token at a time. The first
-        # caller wins; the second gets the existing runtime back and
-        # skips its own ``start()``.
+        # Cooperate with ``z4j_celery.worker_bootstrap``: both paths can fire
+        # in one Django+Celery worker process. The process singleton prevents
+        # duplicate capture stacks and runtimes in that process. The first
+        # caller wins; the second reuses its runtime.
         active = try_register(candidate, owner="z4j_django.apps")
         _runtime = active
         if active is not candidate:
@@ -167,12 +166,9 @@ class Z4JDjangoConfig(AppConfig):
             _runtime = None
             return
 
-        # Register shutdown in the threading._register_atexit phase
-        # (runs BEFORE concurrent.futures tears down the default
-        # executor) so the runtime drains while that executor is still
-        # live - making the heartbeat shutdown-race structurally
-        # impossible rather than merely swallowed. Falls back to plain
-        # atexit if the private API is unavailable.
+        # Register shutdown before concurrent.futures tears down the default
+        # executor so runtime teardown can finish without the heartbeat race.
+        # Fall back to plain atexit if the private API is unavailable.
         from z4j_bare.control import register_shutdown_atexit
 
         register_shutdown_atexit(_shutdown)
@@ -182,8 +178,7 @@ class Z4JDjangoConfig(AppConfig):
     def get_runtime(cls) -> AgentRuntime | None:
         """Return the running agent runtime, if any.
 
-        Used by tests and by management commands that want to flush
-        the buffer manually.
+        Used by tests and management commands that inspect runtime state.
         """
         return _runtime
 
@@ -345,12 +340,10 @@ def _build_runtime() -> AgentRuntime:
     """Resolve config, discover adapters, construct the runtime.
 
     Does NOT call :meth:`AgentRuntime.start`. The caller must
-    register with the process-wide singleton first (so a concurrent
-    install path in the same process - typically
-    ``celery.signals.worker_init`` under a Celery worker - cannot
-    race us into opening two WebSocket sessions for the same agent
-    token). The winner calls ``start()``; the loser drops its
-    candidate.
+    register with the process-wide singleton first so a concurrent install
+    path in the same process, typically ``celery.signals.worker_init`` under
+    a Celery worker, cannot create a duplicate capture stack and runtime.
+    The winner calls ``start()``; the loser drops its candidate.
     """
     from z4j_django.config import build_config_from_django
 
@@ -623,7 +616,7 @@ def _resolve_import_path(path: str) -> Any:
 
 
 def _shutdown() -> None:
-    """``atexit`` handler that flushes the buffer and stops the runtime."""
+    """Stop the runtime; unsent entries remain durable for the next start."""
     global _runtime  # noqa: PLW0603  module-level singleton lazy-init
     if _runtime is None:
         return

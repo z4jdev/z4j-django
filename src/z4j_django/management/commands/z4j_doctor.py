@@ -162,9 +162,9 @@ class Command(BaseCommand):
     def _detect_engines(self) -> list[str]:
         """Same auto-detect logic the runtime uses, surfaced for the doctor.
 
-        Returns the list of engine *names* that would be installed in
-        this process. Does NOT actually instantiate the engines or
-        connect them to anything - this is a pure probe.
+        Returns the names from the runtime's discovery helper. Discovery
+        instantiates the adapter objects, but does not connect their signal
+        handlers or start an agent runtime.
         """
         from z4j_django.apps import _discover_engines
 

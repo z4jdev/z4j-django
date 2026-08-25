@@ -11,7 +11,7 @@ Subcommand surface (inherited from z4j_bare.cli):
 
 - ``doctor``  - full probe ladder + JSON output option
 - ``check``   - compact pass/fail
-- ``status``  - one-line current state (lists every running agent)
+- ``status``  - state from pidfiles under the current ``Z4J_HOME``
 - ``restart`` / ``reload`` - SIGHUP the django agent's pidfile
 - ``run``, ``version`` - inherited verbatim from z4j-bare
 

@@ -1,9 +1,9 @@
 """``python manage.py z4j_status`` - one-line agent introspection.
 
-Reads the pidfile registry under ``$Z4J_RUNTIME_DIR`` (default
-``~/.z4j/``) and lists every running z4j agent on this host with
-PID + liveness. Doesn't require a working brain - it's a pure
-host-local introspection.
+Reads the pidfile registry under ``$Z4J_HOME`` (default ``~/.z4j/``) and
+reports the agent pidfiles visible in that directory with PID and liveness.
+It cannot discover agents using another home directory or user account.
+It does not require a working brain.
 
 Exit 0 even if no agents are running (status is informational,
 not pass/fail; use ``z4j_check`` for that).
@@ -20,8 +20,8 @@ from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
     help = (
-        "List every running z4j agent on this host (PID + liveness) "
-        "by reading the pidfile registry. Host-local, no brain needed."
+        "Report agent pidfiles under the current Z4J_HOME with PID and "
+        "liveness. Agents using another home directory are not discovered."
     )
 
     def handle(self, *args: Any, **options: Any) -> None:

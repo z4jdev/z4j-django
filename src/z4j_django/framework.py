@@ -69,8 +69,8 @@ class DjangoFrameworkAdapter:
         self._shutdown_hooks.append(hook)
 
     def register_admin_view(self, view: Any) -> None:
-        # Phase 1: no-op. The optional Django admin embed lands in
-        # Phase 1.1 alongside the dashboard polish.
+        # Reserved compatibility hook. The package does not currently embed a
+        # Brain view in Django admin.
         return None
 
     # ------------------------------------------------------------------
@@ -80,9 +80,10 @@ class DjangoFrameworkAdapter:
     def fire_startup(self) -> None:
         """Invoke every registered startup hook in order.
 
-        Called once after the agent runtime has connected. Exceptions
-        from individual hooks are caught and logged so a single bad
-        hook does not abort the others.
+        Called after ``AgentRuntime.start()`` reaches local steady state.
+        The WebSocket may still be connecting in the background. Exceptions
+        from individual hooks are caught and logged so a single bad hook does
+        not abort the others.
         """
         import logging
 

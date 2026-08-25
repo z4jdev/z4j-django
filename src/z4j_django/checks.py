@@ -58,9 +58,9 @@ def check_z4j_settings(
             Error(
                 "z4j_django is in INSTALLED_APPS but settings.Z4J is missing.",
                 hint=(
-                    "Add a Z4J = {'brain_url': ..., 'token': ..., 'project_id': ...} "
-                    "dict to settings.py, or set Z4J_BRAIN_URL, Z4J_TOKEN, and "
-                    "Z4J_PROJECT_ID environment variables."
+                    "Define settings.Z4J as a dict. Use Z4J = {} when all "
+                    "values come from Z4J_* environment variables, or put "
+                    "brain_url, token, project_id, and hmac_secret in the dict."
                 ),
                 id=_E_NOT_A_DICT,
             ),

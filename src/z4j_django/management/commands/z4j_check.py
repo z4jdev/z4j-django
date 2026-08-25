@@ -1,9 +1,9 @@
 """``python manage.py z4j_check`` - compact pass/fail health check.
 
-Mirrors ``z4j-django check`` (the standalone CLI form). Runs the
-same probe ladder as ``z4j_doctor`` but emits one line per failed
-probe (or a single OK line) - suitable for cron jobs, deploy
-gates, and Nagios-style monitors.
+Mirrors ``z4j-django check`` (the standalone CLI form). Checks the local
+buffer and DNS/TCP/TLS reachability, then emits one line per failed probe
+or a single OK line. It does not perform the doctor's WebSocket
+authentication probe or engine discovery.
 
 Exit code is the standard pass/fail contract: 0 = healthy,
 1 = at least one probe failed, 2 = config error.
@@ -19,8 +19,8 @@ from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
     help = (
-        "Compact pass/fail z4j agent health check. Same probes as "
-        "z4j_doctor, exit 0/1 contract for scripts and monitors."
+        "Compact pass/fail buffer and DNS/TCP/TLS health check. "
+        "Does not test WebSocket authentication or engine discovery."
     )
 
     def handle(self, *args: Any, **options: Any) -> None:

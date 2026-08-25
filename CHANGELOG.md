@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.0 (2026-08-25)
+
+* Raised the supported security floors to Django 5.2.17 on Python 3.11 and Django 6.0.8 on Python 3.12+, while keeping the Python 3.12+ adapter lane uncapped for standalone Django 6.1 installs.
+* Declared SQLParse 0.6.0 as a direct security floor rather than relying on Django's transitive dependency.
+* The Celery and all-extras lanes resolve Django 6.0.8 until `django-celery-beat` removes its upstream `Django<6.1` coexistence cap.
+
 ## 1.8.0 (2026-07-23)
 
 * The Django integration now installs the agent under `celery beat` (the scheduler previously showed as unknown), and celery-flag subcommand parsing handles value-taking flags.
