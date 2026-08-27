@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.1 (2026-08-26)
+
+* Carried with the coordinated fleet release. No adapter behaviour changed.
+
 ## 1.9.0 (2026-08-25)
 
 * Raised the supported security floors to Django 5.2.17 on Python 3.11 and Django 6.0.8 on Python 3.12+, while keeping the Python 3.12+ adapter lane uncapped for standalone Django 6.1 installs.
