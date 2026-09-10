@@ -1,6 +1,6 @@
 [project]
 name = "z4j-django"
-version = "1.10.0"
+version = "1.11.0"
 description = "z4j Django framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -10,6 +10,7 @@ keywords = ["z4j", "django", "celery", "task"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
+    "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
     "Framework :: Django :: 6.1",
@@ -26,52 +27,38 @@ dependencies = [
     # Intra-z4j floor policy: every z4j package in a release wave
     # is tested together, so intra-z4j floors track the wave version
     # and refuse mixed installs (R9-H2 precedent).
-    "z4j-core>=1.10.0,<2",
-    "z4j-bare>=1.10.0,<2",
-    # Security-supported Django lanes. Django 6 requires Python >=3.12,
-    # so 5.2.17 is the fixed floor on Python 3.11 and 6.0.8 is the
-    # fixed floor on Python 3.12+. The latter stays uncapped: standalone
-    # adapter installs can resolve Django 6.1, while integrations with
-    # django-celery-beat 2.9 resolve 6.0.8 because upstream currently
-    # constrains that coexistence graph to Django <6.1.
-    # Keeping the markers in published metadata means every supported
-    # interpreter resolves a branch that includes the August 2026 fixes
-    # instead of leaving operator installs open to Django 6.0.7.
-    #
-    # API floor: every Django symbol z4j-django imports (AppConfig,
-    # settings, system-checks framework, BaseCommand, apps registry,
-    # BigAutoField string) is covered by both lanes. The Python 3.11
-    # branch stays below Django 6 because that line requires Python 3.12.
-    #
-    # SQLParse is a transitive Django dependency, but its security floor
-    # is direct here so no resolver can select the vulnerable <0.6 line.
-    "django>=5.2.17,<6; python_version < '3.12'",
-    "django>=6.0.8; python_version >= '3.12'",
-    "sqlparse>=0.6.0",
+    "z4j-core>=1.11.0,<2",
+    "z4j-bare>=1.11.0,<2",
+    # Host-framework API compatibility, not an upstream patch policy.
+    # The adapter uses the AppConfig/settings/checks/management APIs shared
+    # by Django 4.2, 5.2 and 6.x. Supported Python/framework combinations
+    # and current security recommendations are documented separately.
+    # Framework-owned transitive libraries remain Django's responsibility.
+    "django>=4.2",
 ]
 
 [project.optional-dependencies]
 # Canonical engine bundles. `pip install z4j-django[celery]` pulls
 # the engine adapter AND its companion scheduler in one shot, so a
 # fresh install never needs a second command.
-celery   = ["z4j-celery>=1.10.0,<2",   "z4j-celerybeat>=1.10.0,<2"]
+celery   = ["z4j-celery>=1.11.0,<2",   "z4j-celerybeat>=1.11.0,<2"]
 # R9 H-2: z4j-rq floor lifted to >=1.6.7 here so the [rq] extra
 # never resolves a pre-1.6.7 z4j-rq alongside this 1.6.8+ adapter
 # stack. See packages/z4j/pyproject.toml for the full rationale.
-rq       = ["z4j-rq>=1.10.0,<2",       "z4j-rqscheduler>=1.10.0,<2"]
-dramatiq = ["z4j-dramatiq>=1.10.0,<2", "z4j-apscheduler>=1.10.0,<2"]
-huey     = ["z4j-huey>=1.10.0,<2",     "z4j-hueyperiodic>=1.10.0,<2"]
-arq      = ["z4j-arq>=1.10.0,<2",      "z4j-arqcron>=1.10.0,<2"]
-taskiq   = ["z4j-taskiq>=1.10.0,<2",   "z4j-taskiqscheduler>=1.10.0,<2"]
+rq       = ["z4j-rq>=1.11.0,<2",       "z4j-rqscheduler>=1.11.0,<2"]
+dramatiq = ["z4j-dramatiq>=1.11.0,<2", "z4j-apscheduler>=1.11.0,<2"]
+huey     = ["z4j-huey>=1.11.0,<2",     "z4j-hueyperiodic>=1.11.0,<2"]
+arq      = ["z4j-arq>=1.11.0,<2",      "z4j-arqcron>=1.11.0,<2"]
+taskiq   = ["z4j-taskiq>=1.11.0,<2",   "z4j-taskiqscheduler>=1.11.0,<2"]
 # Every engine in one shot - useful for CI matrices that exercise
 # all adapters against a Django host.
 all = [
-    "z4j-celery>=1.10.0,<2",   "z4j-celerybeat>=1.10.0,<2",
-    "z4j-rq>=1.10.0,<2",       "z4j-rqscheduler>=1.10.0,<2",  # R9 H-2 floor
-    "z4j-dramatiq>=1.10.0,<2", "z4j-apscheduler>=1.10.0,<2",
-    "z4j-huey>=1.10.0,<2",     "z4j-hueyperiodic>=1.10.0,<2",
-    "z4j-arq>=1.10.0,<2",      "z4j-arqcron>=1.10.0,<2",
-    "z4j-taskiq>=1.10.0,<2",   "z4j-taskiqscheduler>=1.10.0,<2",
+    "z4j-celery>=1.11.0,<2",   "z4j-celerybeat>=1.11.0,<2",
+    "z4j-rq>=1.11.0,<2",       "z4j-rqscheduler>=1.11.0,<2",  # R9 H-2 floor
+    "z4j-dramatiq>=1.11.0,<2", "z4j-apscheduler>=1.11.0,<2",
+    "z4j-huey>=1.11.0,<2",     "z4j-hueyperiodic>=1.11.0,<2",
+    "z4j-arq>=1.11.0,<2",      "z4j-arqcron>=1.11.0,<2",
+    "z4j-taskiq>=1.11.0,<2",   "z4j-taskiqscheduler>=1.11.0,<2",
 ]
 
 [project.scripts]

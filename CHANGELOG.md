@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.11.0 (2026-09-10)
+
+* Broaden the Django requirement to `django>=4.2`, with no Python marker and
+  no adapter upper cap, and add the Django 4.2 classifier. This replaces the
+  per-Python minimums `django>=5.2.17,<6` (Python 3.11) and `django>=6.0.8`
+  (Python 3.12+) and drops the direct `sqlparse>=0.6.0` requirement, leaving
+  SQLParse to Django's own metadata. Choose a Python and Django combination
+  that Django itself supports.
+* Removing those minimums is deliberate. They were security floors for
+  Django's August 2026 security release and for SQLParse 0.6.0, but the
+  adapter only uses the AppConfig, settings, system-check and management
+  command APIs that Django 4.2, 5.2 and 6.x share, so its range now states API
+  compatibility rather than an upstream patch policy. Installing or upgrading
+  z4j-django no longer forces a Django or SQLParse upgrade, and no longer
+  refuses a release those advisories affect. Keep the host on a supported,
+  patched Django line: Django 4.2 support is legacy API compatibility, not a
+  statement that 4.2 still receives upstream security fixes. See
+  https://z4j.dev/reference/compatibility/.
+* Align runtime version metadata and sibling dependency floors with the coordinated 1.11.0 release.
+
 ## 1.10.0 (2026-08-28)
 
 * Carried with the coordinated fleet release. No behaviour changed.

@@ -15,14 +15,17 @@ processes through the engine-specific or framework-free integration.
 
 ## Compatibility
 
-- Django 5.2.17 or newer (below Django 6) on Python 3.11
-- Django 6.0.8 or newer with no adapter cap on Python 3.12+
-- Python 3.11+
+- Django 4.2+ with no adapter upper cap
+- Python 3.11+; choose a Python/Django combination supported by that Django release
 
-A standalone Python 3.12+ install can resolve Django 6.1. The Celery and
-all-extras lanes currently resolve Django 6.0.8 because
-`django-celery-beat` still declares `Django<6.1`; that is an upstream
-coexistence constraint, not a stale security pin.
+Existing Django 4.2 and 5.2 applications can install the adapter without moving
+to Django 6. Current-framework tests also cover Django 6.1.1. The Celery/all-extras
+combination respects `django-celery-beat`'s own `Django<6.1` constraint.
+
+This range describes integration API compatibility. Use supported Django release
+lines and current security patches for production; legacy compatibility does not
+certify an older host application as secure. Z4J's own audited deployment locks
+are maintained separately from the adapter's public requirements.
 
 Pair with an engine adapter (`z4j-celery`, `z4j-rq`, `z4j-dramatiq`, `z4j-huey`, `z4j-arq`, `z4j-taskiq`); each engine adapter carries its own upstream floor.
 
