@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.0 (2026-10-03)
+
+* Carried with the coordinated fleet release. No behaviour changed.
+
 ## 1.11.0 (2026-09-10)
 
 * Broaden the Django requirement to `django>=4.2`, with no Python marker and

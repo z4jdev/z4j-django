@@ -29,7 +29,7 @@ are maintained separately from the adapter's public requirements.
 
 Pair with an engine adapter (`z4j-celery`, `z4j-rq`, `z4j-dramatiq`, `z4j-huey`, `z4j-arq`, `z4j-taskiq`); each engine adapter carries its own upstream floor.
 
-Full per-adapter matrix at <https://z4j.dev/reference/compatibility/>.
+Full per-adapter matrix at <https://docs.z4j.com/reference/compatibility/>.
 
 ## What it ships
 
@@ -80,7 +80,7 @@ agent is minted; retain both values.
 
 ## Documentation
 
-Full docs at [z4j.dev/frameworks/django/](https://z4j.dev/frameworks/django/).
+Full docs at [docs.z4j.com/frameworks/django/](https://docs.z4j.com/frameworks/django/).
 
 ## License
 
@@ -89,7 +89,7 @@ Apache-2.0, see [LICENSE](LICENSE).
 ## Links
 
 - Homepage: https://z4j.com
-- Documentation: https://z4j.dev
+- Documentation: https://docs.z4j.com
 - PyPI: https://pypi.org/project/z4j-django/
 - Issues: https://github.com/z4jdev/z4j-django/issues
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
