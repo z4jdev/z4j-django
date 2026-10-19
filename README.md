@@ -19,8 +19,10 @@ processes through the engine-specific or framework-free integration.
 - Python 3.11+; choose a Python/Django combination supported by that Django release
 
 Existing Django 4.2 and 5.2 applications can install the adapter without moving
-to Django 6. Current-framework tests also cover Django 6.1.1. The Celery/all-extras
-combination respects `django-celery-beat`'s own `Django<6.1` constraint.
+to Django 6. Current-framework tests also cover Django 6.1.1. `django-celery-beat`
+declares its own `Django<6.1` constraint, which applies only where it is
+installed (for example through `z4j-celerybeat[django]`); this adapter's
+`celery` and `all` extras do not install `django-celery-beat`.
 
 This range describes integration API compatibility. Use supported Django release
 lines and current security patches for production; legacy compatibility does not
@@ -73,9 +75,10 @@ agent is minted; retain both values.
 - Agent startup and delivery failures are logged and isolated from Django
   request handlers, signals, and worker code; capture hooks make no brain
   network request inline.
-- Engine event queues and the SQLite outbound buffer are bounded. Queue
-  overflow drops new events and buffer pressure evicts oldest rows; both losses
-  are logged.
+- Engine event queues and the SQLite outbound buffer are bounded. A full
+  engine queue loses an event (the Celery, RQ and Dramatiq adapters evict the
+  oldest queued event; the Huey, arq and TaskIQ adapters drop the new one) and
+  buffer pressure evicts oldest rows; both losses are logged.
 - Agent reconnects on every transient failure with bounded backoff.
 
 ## Documentation
@@ -84,7 +87,7 @@ Full docs at [docs.z4j.com/frameworks/django/](https://docs.z4j.com/frameworks/d
 
 ## License
 
-Apache-2.0, see [LICENSE](LICENSE).
+Apache-2.0, see [LICENSE](https://github.com/z4jdev/z4j-django/blob/main/LICENSE).
 
 ## Links
 
@@ -92,5 +95,5 @@ Apache-2.0, see [LICENSE](LICENSE).
 - Documentation: https://docs.z4j.com
 - PyPI: https://pypi.org/project/z4j-django/
 - Issues: https://github.com/z4jdev/z4j-django/issues
-- Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Security: security@z4j.com (see [SECURITY.md](SECURITY.md))
+- Changelog: [CHANGELOG.md](https://github.com/z4jdev/z4j-django/blob/main/CHANGELOG.md)
+- Security: security@z4j.com (see [SECURITY.md](https://github.com/z4jdev/z4j-django/blob/main/SECURITY.md))
